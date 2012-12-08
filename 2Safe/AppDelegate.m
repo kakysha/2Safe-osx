@@ -7,6 +7,7 @@
 //
 
 #import "AppDelegate.h"
+#import "HTTPApi.h"
 
 @implementation AppDelegate
 
@@ -17,6 +18,8 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     // Insert code here to initialize your application
+    HTTPApi *api = [[HTTPApi alloc] init];
+    [api testApi];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.zaopark._Safe" in the user's Application Support directory.
