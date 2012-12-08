@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3710FAF81673EC03004D0067 /* FileHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 3710FAF71673EC03004D0067 /* FileHandler.m */; };
 		57E9A3DD16677A7700104A97 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57E9A3DC16677A7700104A97 /* Cocoa.framework */; };
 		57E9A3E716677A7700104A97 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 57E9A3E516677A7700104A97 /* InfoPlist.strings */; };
 		57E9A3E916677A7700104A97 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 57E9A3E816677A7700104A97 /* main.m */; };
@@ -17,6 +18,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3710FAF61673EC03004D0067 /* FileHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FileHandler.h; sourceTree = "<group>"; };
+		3710FAF71673EC03004D0067 /* FileHandler.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FileHandler.m; sourceTree = "<group>"; };
 		57E9A3D816677A7700104A97 /* 2Safe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 2Safe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		57E9A3DC16677A7700104A97 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		57E9A3DF16677A7700104A97 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -84,6 +87,8 @@
 		57E9A3E216677A7700104A97 /* 2Safe */ = {
 			isa = PBXGroup;
 			children = (
+				3710FAF61673EC03004D0067 /* FileHandler.h */,
+				3710FAF71673EC03004D0067 /* FileHandler.m */,
 				57E9A3EE16677A7700104A97 /* AppDelegate.h */,
 				57E9A3EF16677A7700104A97 /* AppDelegate.m */,
 				57E9A3F116677A7700104A97 /* MainMenu.xib */,
@@ -172,6 +177,7 @@
 				57E9A3E916677A7700104A97 /* main.m in Sources */,
 				57E9A3F016677A7700104A97 /* AppDelegate.m in Sources */,
 				57E9A3F616677A7700104A97 /* _Safe.xcdatamodeld in Sources */,
+				3710FAF81673EC03004D0067 /* FileHandler.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +307,7 @@
 				57E9A3FB16677A7700104A97 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 
