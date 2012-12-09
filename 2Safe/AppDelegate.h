@@ -8,7 +8,14 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate>{
+    FSEventStreamRef _stream;
+    FSEventStreamContext *_context;
+    BOOL _running;
+    
+    IBOutlet NSArrayController *ctrl;
+
+}
 
 @property (assign) IBOutlet NSWindow *window;
 
@@ -17,5 +24,6 @@
 @property (readonly, strong, nonatomic) NSManagedObjectContext *managedObjectContext;
 
 - (IBAction)saveAction:(id)sender;
+- (IBAction)startTracking:(id)sender;
 
 @end

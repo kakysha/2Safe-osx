@@ -7,7 +7,16 @@
 //
 
 #import <Foundation/Foundation.h>
+#include <CoreServices/CoreServices.h>	
 
-@interface FileHandler : NSObject
+@interface FileHandler : NSObject{
+    FSEventStreamRef _stream;
+    FSEventStreamContext *_context;
+    BOOL _running;
+    
+    IBOutlet NSArrayController *ctrl;
+}
+
+-(void) startTracking;
 
 @end
