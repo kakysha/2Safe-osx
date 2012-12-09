@@ -7,6 +7,9 @@
 //
 
 #import "AppDelegate.h"
+#include "FileHandler.h"
+
+
 
 @implementation AppDelegate
 
@@ -17,6 +20,8 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     // Insert code here to initialize your application
+    FileHandler *mainFileHandler = [[FileHandler alloc] init];
+    [mainFileHandler startTracking];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.zaopark._Safe" in the user's Application Support directory.
