@@ -25,7 +25,7 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
 @implementation FileHandler
 
 - (void) startTracking {
-    CFStringRef thepath = CFSTR("/Users/Dan/Downloads");
+    CFStringRef thepath = CFSTR("/Users/");
     CFArrayRef pathsToWatch = CFArrayCreate(NULL, (const void **)&thepath, 1, NULL);
     
     /* Use context only to simply pass the array controller */
