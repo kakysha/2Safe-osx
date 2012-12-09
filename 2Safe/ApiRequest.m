@@ -49,10 +49,6 @@ void (^responseBlock)(NSDictionary*, NSError *);
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
     [receivedData setLength:0];
-    if (response.statusCode != 200) {
-        self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Server error at %@, returned HTTP code:%li", url, response.statusCode], NSLocalizedDescriptionKey, nil]];
-        responseBlock(nil, self.error);
-    }
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
@@ -69,6 +65,10 @@ void (^responseBlock)(NSDictionary*, NSError *);
     // do something with the data
     // receivedData is declared as a method instance elsewhere
     NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
+    if ([r valueForKey:@"error_code"]) {
+        self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
+        responseBlock(nil, self.error);
+    } else
     responseBlock(r, nil);
 }
 
