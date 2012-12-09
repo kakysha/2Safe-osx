@@ -8,6 +8,9 @@
 
 #import "AppDelegate.h"
 #import "ApiRequest.h"
+#import "FileHandler.h"
+
+
 
 @implementation AppDelegate
 
@@ -28,6 +31,9 @@
             NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
         }
     }];
+    
+    FileHandler *mainFileHandler = [[FileHandler alloc] init];
+    [mainFileHandler startTracking];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.zaopark._Safe" in the user's Application Support directory.
