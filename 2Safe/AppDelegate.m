@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-#import "HTTPApi.h"
+#import "ApiRequest.h"
 
 @implementation AppDelegate
 
@@ -18,8 +18,16 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     // Insert code here to initialize your application
-    HTTPApi *api = [[HTTPApi alloc] init];
-    [api testApi];
+    ApiRequest *api = [[ApiRequest alloc] initWithAction:@"chk_mail" params:@{@"email": @"awd@awd.awd"}];
+    [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        if (!e) {
+            for (NSString *key in response){
+                NSLog(@"key:%@ value:%@\n", key, [response valueForKey:key]);
+            }
+        } else {
+            NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+        }
+    }];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.zaopark._Safe" in the user's Application Support directory.
