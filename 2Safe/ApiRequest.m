@@ -69,7 +69,7 @@ void (^responseBlock)(NSDictionary*, NSError *);
         self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
         responseBlock(nil, self.error);
     } else
-    responseBlock(r, nil);
+    responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
 }
 
 +(NSString*)urlEscapeString:(NSString *)unencodedString

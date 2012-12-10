@@ -9,6 +9,7 @@
 #import "AppDelegate.h"
 #import "ApiRequest.h"
 #import "FileHandler.h"
+#import "LoginController.h"
 
 
 
@@ -20,8 +21,10 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    [LoginController token];
+    /*
     // Insert code here to initialize your application
-    ApiRequest *api = [[ApiRequest alloc] initWithAction:@"chk_mail" params:@{@"email": @"awd@awd.awd"}];
+    ApiRequest *api = [[ApiRequest alloc] initWithAction:@"chk_mail" params:@{@"email": @"ezhikvdele@gmail.com"}];
     [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             for (NSString *key in response){
@@ -32,8 +35,9 @@
         }
     }];
     
-    FileHandler *mainFileHandler = [[FileHandler alloc] init];
-    [mainFileHandler startTracking];
+    //FileHandler *mainFileHandler = [[FileHandler alloc] init];
+    //[mainFileHandler startTracking];
+    */
 }
 
 @end

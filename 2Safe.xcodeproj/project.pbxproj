@@ -8,7 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		3710FAF81673EC03004D0067 /* FileHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 3710FAF71673EC03004D0067 /* FileHandler.m */; };
+		57010B25167626F80039E119 /* LoginController.m in Sources */ = {isa = PBXBuildFile; fileRef = 57010B24167626F80039E119 /* LoginController.m */; };
+		57010B2816762E210039E119 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57010B2716762E210039E119 /* Security.framework */; };
 		570374561674007400BF0214 /* ApiRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 570374551674007400BF0214 /* ApiRequest.m */; };
+		572795D716762EA500156631 /* SSKeychain.m in Sources */ = {isa = PBXBuildFile; fileRef = 572795D616762EA500156631 /* SSKeychain.m */; };
 		57E9A3DD16677A7700104A97 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57E9A3DC16677A7700104A97 /* Cocoa.framework */; };
 		57E9A3E716677A7700104A97 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 57E9A3E516677A7700104A97 /* InfoPlist.strings */; };
 		57E9A3E916677A7700104A97 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 57E9A3E816677A7700104A97 /* main.m */; };
@@ -20,8 +23,13 @@
 /* Begin PBXFileReference section */
 		3710FAF61673EC03004D0067 /* FileHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FileHandler.h; sourceTree = "<group>"; };
 		3710FAF71673EC03004D0067 /* FileHandler.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FileHandler.m; sourceTree = "<group>"; };
+		57010B23167626F80039E119 /* LoginController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoginController.h; sourceTree = "<group>"; };
+		57010B24167626F80039E119 /* LoginController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LoginController.m; sourceTree = "<group>"; };
+		57010B2716762E210039E119 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		570374541674007400BF0214 /* ApiRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ApiRequest.h; sourceTree = "<group>"; };
 		570374551674007400BF0214 /* ApiRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ApiRequest.m; sourceTree = "<group>"; };
+		572795D516762EA500156631 /* SSKeychain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SSKeychain.h; sourceTree = "<group>"; };
+		572795D616762EA500156631 /* SSKeychain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SSKeychain.m; sourceTree = "<group>"; };
 		57E9A3D816677A7700104A97 /* 2Safe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 2Safe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		57E9A3DC16677A7700104A97 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		57E9A3DF16677A7700104A97 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -42,6 +50,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57010B2816762E210039E119 /* Security.framework in Frameworks */,
 				57E9A3DD16677A7700104A97 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -67,12 +76,16 @@
 		578EBB6F16749E0600301434 /* controller */ = {
 			isa = PBXGroup;
 			children = (
+				572795D516762EA500156631 /* SSKeychain.h */,
+				572795D616762EA500156631 /* SSKeychain.m */,
 				3710FAF61673EC03004D0067 /* FileHandler.h */,
 				3710FAF71673EC03004D0067 /* FileHandler.m */,
 				570374541674007400BF0214 /* ApiRequest.h */,
 				570374551674007400BF0214 /* ApiRequest.m */,
 				57E9A3EE16677A7700104A97 /* AppDelegate.h */,
 				57E9A3EF16677A7700104A97 /* AppDelegate.m */,
+				57010B23167626F80039E119 /* LoginController.h */,
+				57010B24167626F80039E119 /* LoginController.m */,
 			);
 			name = controller;
 			sourceTree = "<group>";
@@ -97,6 +110,7 @@
 		57E9A3DB16677A7700104A97 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				57010B2716762E210039E119 /* Security.framework */,
 				57E9A3DC16677A7700104A97 /* Cocoa.framework */,
 				57E9A3DE16677A7700104A97 /* Other Frameworks */,
 			);
@@ -204,6 +218,8 @@
 				57E9A3F016677A7700104A97 /* AppDelegate.m in Sources */,
 				3710FAF81673EC03004D0067 /* FileHandler.m in Sources */,
 				570374561674007400BF0214 /* ApiRequest.m in Sources */,
+				57010B25167626F80039E119 /* LoginController.m in Sources */,
+				572795D716762EA500156631 /* SSKeychain.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
