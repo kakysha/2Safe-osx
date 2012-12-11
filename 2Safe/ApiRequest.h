@@ -13,12 +13,14 @@
 //request
 @property NSString *action;
 @property NSDictionary *requestparams;
+@property BOOL withToken;
 //response
 @property NSString *rawresponse;
 @property NSDictionary *response;
 @property NSError *error;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params;
+- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)token;
 - (void) performRequestWithBlock:(void (^)(NSDictionary *r, NSError *e))block;
 
 @end

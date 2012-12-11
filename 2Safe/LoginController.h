@@ -19,5 +19,6 @@
 - (IBAction)enter:(id)sender;
 
 + (NSString *)token;
++ (void)requestTokenWithBlock:(void(^)(NSString *))responseBlock;
 
 @end

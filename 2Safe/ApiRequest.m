@@ -7,12 +7,16 @@
 //
 
 #import "ApiRequest.h"
+#import "LoginController.h"
 
-@implementation ApiRequest
+@implementation ApiRequest {
+    NSMutableData *receivedData;
+    NSMutableString *url;
+    void (^responseBlock)(NSDictionary*, NSError *);
+    BOOL isWaiting;
+}
 
-NSMutableData *receivedData;
-NSMutableString *url;
-void (^responseBlock)(NSDictionary*, NSError *);
+static NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
@@ -20,6 +24,25 @@ void (^responseBlock)(NSDictionary*, NSError *);
         _action = action;
         _requestparams = params;
         receivedData = [NSMutableData data];
+        return self;
+    } else {
+        return nil;
+    }
+}
+- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)token {
+    if (self = [self initWithAction:action params:params]) {
+        _withToken = token;
+        if (![LoginController token]) {
+            [LoginController requestTokenWithBlock:^(NSString *res){
+                _token = res;
+                if (isWaiting) {
+                    [self performRequestWithBlock:responseBlock];
+                    isWaiting = NO;
+                }
+            }];
+        } else {
+            _token = [LoginController token];
+        }
         return self;
     } else {
         return nil;
@@ -33,9 +56,19 @@ void (^responseBlock)(NSDictionary*, NSError *);
     }
     //save the callback as block
     responseBlock = block;
+    
+    if ((self.withToken)&&(!_token)) {
+        //return and wait for block execution;
+        isWaiting = YES;
+        return;
+    }
     //create the request url
     [url appendString:self.action];
     url = [ApiRequest addQueryStringToUrlString:url withDictionary:self.requestparams];
+    if (self.withToken) {
+        url = [ApiRequest addQueryStringToUrlString:url withDictionary:[[NSDictionary alloc] initWithObjectsAndKeys:_token,@"token", nil]];
+    }
+
     // Create the request.
     NSURLRequest *theRequest=[NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:60.0];
     // create the connection with the request

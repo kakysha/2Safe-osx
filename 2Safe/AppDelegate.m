@@ -20,24 +20,21 @@
 @synthesize managedObjectContext = _managedObjectContext;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
-{
-    [LoginController token];
-    /*
+{   
     // Insert code here to initialize your application
-    ApiRequest *api = [[ApiRequest alloc] initWithAction:@"chk_mail" params:@{@"email": @"ezhikvdele@gmail.com"}];
+    ApiRequest *api = [[ApiRequest alloc] initWithAction:@"get_disk_quota" params:@{} withToken:YES];
     [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             for (NSString *key in response){
                 NSLog(@"key:%@ value:%@\n", key, [response valueForKey:key]);
             }
         } else {
-            NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+            NSLog(@"[%@] Error code:%ld description:%@",[api action], [e code],[e localizedDescription]);
         }
     }];
     
     //FileHandler *mainFileHandler = [[FileHandler alloc] init];
     //[mainFileHandler startTracking];
-    */
 }
 
 @end
