@@ -7,6 +7,7 @@
 //
 
 #import "FileHandler.h"
+#import "FileUploader.h"
 
 static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,size_t numEvents,
                      void *eventPaths,const FSEventStreamEventFlags eventFlags[],
@@ -19,10 +20,18 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
     for (i=0; i<numEvents; i++) {
         int count;
         NSLog(@"Change %llu in %s, flags %u\n", eventIds[i],paths[i],eventFlags[i]);
+        //TODO: delegate file events to FileUploader
+        //[FileUploader file:<#(NSString *)#> atPath:<#(NSString *)#> triggeredEvent:<#(FileEvent)#>];
     }
 }
 
 @implementation FileHandler
+
+//-(id)init{
+//    self = [super init];
+//    if(self) delegate = nil;
+//    return self;
+//}
 
 - (void) startTracking {
     CFStringRef thepath = CFSTR("/Users/");
@@ -51,5 +60,9 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
     
     FSEventStreamStart(_stream);
 }
+
+//-(void)setDelegate:(NSObject<FolderEventDelegate> *)del{
+//    delegate = del;
+//}
 
 @end
