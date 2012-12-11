@@ -13,7 +13,9 @@
     NSMutableData *receivedData;
     NSMutableString *url;
     void (^responseBlock)(NSDictionary*, NSError *);
+    void (^responseDataBlock)(NSData*, NSHTTPURLResponse*, NSError *);
     BOOL isWaiting;
+    BOOL isDataRequest;
 }
 
 static NSString *_token;
@@ -29,9 +31,9 @@ static NSString *_token;
         return nil;
     }
 }
-- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)token {
+- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken {
     if (self = [self initWithAction:action params:params]) {
-        _withToken = token;
+        _withToken = withToken;
         if (![LoginController token]) {
             [LoginController requestTokenWithBlock:^(NSString *res){
                 _token = res;
@@ -49,39 +51,86 @@ static NSString *_token;
     }
 }
 
-- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
+- (void)checkRequestParams {
+    self.error = nil;
     if ((self.action == nil) || (self.requestparams == nil)) {
         self.error = [NSError errorWithDomain:@"2safe" code:01 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:@"action -or- params not presented", NSLocalizedDescriptionKey, nil]];
-        block(nil, self.error);
     }
-    //save the callback as block
-    responseBlock = block;
-    
-    if ((self.withToken)&&(!_token)) {
-        //return and wait for block execution;
-        isWaiting = YES;
-        return;
-    }
-    //create the request url
+}
+
+- (void)prepareRequestUrl{
     [url appendString:self.action];
     url = [ApiRequest addQueryStringToUrlString:url withDictionary:self.requestparams];
     if (self.withToken) {
         url = [ApiRequest addQueryStringToUrlString:url withDictionary:[[NSDictionary alloc] initWithObjectsAndKeys:_token,@"token", nil]];
     }
+}
 
-    // Create the request.
+- (BOOL)isNeedWaitingForToken{
+    if ((self.withToken)&&(!_token)) {
+        //return and wait for block execution;
+        isWaiting = YES;
+        return YES;
+    }
+    return NO;
+}
+
+- (void)sendRequest {
     NSURLRequest *theRequest=[NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:60.0];
-    // create the connection with the request
-    // and start loading the data
     NSURLConnection *theConnection=[[NSURLConnection alloc] initWithRequest:theRequest delegate:self];
     if (!theConnection){
         self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+    }
+}
+
+- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
+    [self checkRequestParams];
+    if (self.error) {
         block(nil, self.error);
+        return;
+    }
+    //save the callback as block
+    responseBlock = block;
+    
+    //check for token awaiting
+    if ([self isNeedWaitingForToken]) return;
+    
+    //create the request url
+    [self prepareRequestUrl];
+
+    //send
+    [self sendRequest];
+    if (self.error) {
+        block(nil, self.error);
+    }
+}
+
+- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse*, NSError *))block {
+    isDataRequest = YES;
+    [self checkRequestParams];
+    if (self.error) {
+        block(nil, nil, self.error);
+        return;
+    }
+    //save the callback as block
+    responseDataBlock = block;
+    
+    //check for token awaiting
+    if ([self isNeedWaitingForToken]) return;
+    
+    //create the request url
+    [self prepareRequestUrl];
+    
+    // send the request
+    [self sendRequest];
+    if (self.error) {
+        block(nil, nil, self.error);
     }
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
     [receivedData setLength:0];
+    self.responseHeaders = response;
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
@@ -91,18 +140,21 @@ static NSString *_token;
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
     // inform the user
     self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Failed to connect to %@", url], NSLocalizedDescriptionKey, nil]];
-    responseBlock(nil, self.error);
+    isDataRequest ? responseDataBlock(nil,nil, self.error) : responseBlock(nil, self.error);
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    // do something with the data
-    // receivedData is declared as a method instance elsewhere
-    NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
-    if ([r valueForKey:@"error_code"]) {
-        self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
-        responseBlock(nil, self.error);
-    } else
-    responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
+    if (isDataRequest){
+        responseDataBlock(receivedData, self.responseHeaders, nil);
+    }
+    else {
+        NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
+        if ([r valueForKey:@"error_code"]) {
+            self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
+            responseBlock(nil, self.error);
+        } else
+            responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
+    }
 }
 
 +(NSString*)urlEscapeString:(NSString *)unencodedString

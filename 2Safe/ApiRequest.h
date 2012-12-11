@@ -15,12 +15,13 @@
 @property NSDictionary *requestparams;
 @property BOOL withToken;
 //response
-@property NSString *rawresponse;
+@property NSHTTPURLResponse *responseHeaders;
 @property NSDictionary *response;
 @property NSError *error;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params;
-- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)token;
+- (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken;
 - (void) performRequestWithBlock:(void (^)(NSDictionary *r, NSError *e))block;
+- (void) performDataRequestWithBlock:(void (^)(NSData *r, NSHTTPURLResponse* h, NSError *e))block;
 
 @end

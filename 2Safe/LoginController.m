@@ -11,13 +11,17 @@
 
 @implementation LoginController
 
-static NSString *_token;
-static NSDictionary *credentials = nil;
+NSString *_token;
+NSDictionary *credentials = nil;
 void (^_completionHandler)(NSString *res);
+BOOL isCaptchaNeeded = NO;
 
 @synthesize window;
+@synthesize captchaView;
 @synthesize login;
 @synthesize password;
+@synthesize captchaImage;
+@synthesize captchaText;
 
 - (IBAction)enter:(id)sender {
     credentials = [[NSDictionary alloc] initWithObjectsAndKeys:[login stringValue], @"login", [password stringValue], @"password", nil];
@@ -25,13 +29,26 @@ void (^_completionHandler)(NSString *res);
     [LoginController auth];
 }
 
-+ (void)showLoginWindow {
+- (void)windowDidBecomeKey:(NSNotification *)notification {
+    if (isCaptchaNeeded) {
+        [captchaView setHidden:NO];
+        ApiRequest *cr = [[ApiRequest alloc] initWithAction:@"get_captcha" params:@{}];
+        [cr performDataRequestWithBlock:^(NSData *r, NSHTTPURLResponse *h, NSError *e) {
+            NSImage *img = [[NSImage alloc] initWithData:r];
+            [captchaImage setImage:img];
+            isCaptchaNeeded = NO;
+        }];
+    }
+}
+
++ (void)showLoginWindowWithCaptcha:(BOOL)wc{
+    isCaptchaNeeded = wc;
     NSLog(@"Asking user for login/password");
     [[[NSApplication sharedApplication] windows][0] makeKeyAndOrderFront:nil]; // DIRTY SLUTTY CODE HERE, BEWARE!
 }
 
 + (NSString *)token{
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
     if (_token != nil) {
         NSLog(@"Getting token from Static Variable");
         return _token;
@@ -52,10 +69,10 @@ void (^_completionHandler)(NSString *res);
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
     
     if (!credentials && !(credentials = [LoginController getCredentialsFromKeychain])) {
-        [LoginController showLoginWindow];
+        [LoginController showLoginWindowWithCaptcha:NO];
         return;
     }
-
+    
     ApiRequest *api = [[ApiRequest alloc] initWithAction:@"auth" params:credentials];
     [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
@@ -69,9 +86,13 @@ void (^_completionHandler)(NSString *res);
 
             if ([SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e]) NSLog(@"Password for %@ is stored in keychain", [credentials valueForKey:@"login"]);
             else NSLog(@"Can't store the password in keychain, error:%@", [e localizedDescription]);
+            
+        } else if ([e code] == 85){ //captcha requirement
+            NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
+            [LoginController showLoginWindowWithCaptcha:YES];
         } else {
             NSLog(@"Error: incorrect username or password\n[code:%ld description:%@]",[e code],[e localizedDescription]);
-            [LoginController showLoginWindow];
+            [LoginController showLoginWindowWithCaptcha:NO];
         }
     }];
 }
