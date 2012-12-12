@@ -15,6 +15,7 @@ NSString *_token;
 NSDictionary *credentials = nil;
 void (^_completionHandler)(NSString *res);
 BOOL isCaptchaNeeded = NO;
+NSString *captchaId;
 
 @synthesize window;
 @synthesize captchaView;
@@ -24,7 +25,7 @@ BOOL isCaptchaNeeded = NO;
 @synthesize captchaText;
 
 - (IBAction)enter:(id)sender {
-    credentials = [[NSDictionary alloc] initWithObjectsAndKeys:[login stringValue], @"login", [password stringValue], @"password", nil];
+    credentials = [[NSDictionary alloc] initWithObjectsAndKeys:[login stringValue], @"login", [password stringValue], @"password", [captchaText stringValue], @"captcha", captchaId, @"captcha_id", nil];
     [[self window] close];
     [LoginController auth];
 }
@@ -36,6 +37,7 @@ BOOL isCaptchaNeeded = NO;
         [cr performDataRequestWithBlock:^(NSData *r, NSHTTPURLResponse *h, NSError *e) {
             NSImage *img = [[NSImage alloc] initWithData:r];
             [captchaImage setImage:img];
+            captchaId = [LoginController getCpatchaIdFromResponseHeaders:h];
             isCaptchaNeeded = NO;
         }];
     }
@@ -90,6 +92,9 @@ BOOL isCaptchaNeeded = NO;
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:YES];
+        } else if ([e code] == 53){ //invalid captcha
+            NSLog(@"Error: Captcha is invalid!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
+            [LoginController showLoginWindowWithCaptcha:YES];
         } else {
             NSLog(@"Error: incorrect username or password\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:NO];
@@ -111,6 +116,13 @@ BOOL isCaptchaNeeded = NO;
     }
     NSLog(@"No logins in keychain");
     return nil;
+}
+
++ (NSString *)getCpatchaIdFromResponseHeaders:(NSHTTPURLResponse *)h {
+    NSString *cookieString = [[h allHeaderFields] valueForKey:@"Set-Cookie"];
+    NSUInteger start = [cookieString rangeOfString:@"="].location + 1;
+    NSUInteger end = [cookieString rangeOfString:@";"].location;
+    return [cookieString substringWithRange:NSMakeRange(start, end-start)];
 }
 
 @end
