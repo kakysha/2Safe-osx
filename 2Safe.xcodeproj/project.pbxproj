@@ -243,6 +243,9 @@
 				570374561674007400BF0214 /* ApiRequest.m in Sources */,
 				57010B25167626F80039E119 /* LoginController.m in Sources */,
 				572795DE1676A54600156631 /* SSKeychain.m in Sources */,
+				18DF62831675EB4400789A1A /* FileLoader.m in Sources */,
+				18DF62881675FFEC00789A1A /* FileUploader.m in Sources */,
+				18DF628B167619E200789A1A /* FileTreeWrapper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
