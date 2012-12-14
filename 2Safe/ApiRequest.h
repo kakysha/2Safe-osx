@@ -23,5 +23,7 @@
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken;
 - (void) performRequestWithBlock:(void (^)(NSDictionary *r, NSError *e))block;
 - (void) performDataRequestWithBlock:(void (^)(NSData *r, NSHTTPURLResponse* h, NSError *e))block;
+- (void) perfomFileUpload:(void (^)(NSDictionary *r, NSError *e))block;
+
 
 @end

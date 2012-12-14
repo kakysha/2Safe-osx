@@ -8,21 +8,29 @@
 
 #import "ApiRequest.h"
 #import "LoginController.h"
+#import "PKMultipartInputStream.h"
+#import "NSFile.h"
 
 @implementation ApiRequest {
     NSMutableData *receivedData;
-    NSMutableString *url;
     void (^responseBlock)(NSDictionary*, NSError *);
     void (^responseDataBlock)(NSData*, NSHTTPURLResponse*, NSError *);
     BOOL isWaiting;
     BOOL isDataRequest;
+    BOOL isMultipart;
+    NSMutableData *POSTBody;
+    NSUInteger contentLength;
+    PKMultipartInputStream *uploadFileStream;
 }
 
+NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
+NSString *url = @"https://api.2safe.com/";
 static NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
-        url = [NSMutableString stringWithString:@"https://api.2safe.com/?cmd="];
+        uploadFileStream = [[PKMultipartInputStream alloc] init];
+        POSTBody = [NSMutableData data];
         _action = action;
         _requestparams = params;
         receivedData = [NSMutableData data];
@@ -51,18 +59,37 @@ static NSString *_token;
     }
 }
 
+//common methods section
++(NSString*)urlEscapeString:(NSString *)unencodedString
+{
+    CFStringRef originalStringRef = (__bridge_retained CFStringRef)unencodedString;
+    NSString *s = (__bridge_transfer NSString *)CFURLCreateStringByAddingPercentEscapes(NULL,originalStringRef, NULL, NULL,kCFStringEncodingUTF8);
+    CFRelease(originalStringRef);
+    return s;
+}
+
+
++(NSMutableString*)addQueryStringToUrlString:(NSString *)urlString withDictionary:(NSDictionary *)dictionary
+{
+    NSMutableString *urlWithQuerystring = [[NSMutableString alloc] initWithString:urlString];
+    
+    for (id key in dictionary) {
+        NSString *keyString = [key description];
+        NSString *valueString = [[dictionary objectForKey:key] description];
+        
+        if ([urlWithQuerystring rangeOfString:@"="].location == NSNotFound) {
+            [urlWithQuerystring appendFormat:@"%@=%@", [ApiRequest urlEscapeString:keyString], [ApiRequest urlEscapeString:valueString]];
+        } else {
+            [urlWithQuerystring appendFormat:@"&%@=%@", [ApiRequest urlEscapeString:keyString], [ApiRequest urlEscapeString:valueString]];
+        }
+    }
+    return urlWithQuerystring;
+}
+
 - (void)checkRequestParams {
     self.error = nil;
     if ((self.action == nil) || (self.requestparams == nil)) {
         self.error = [NSError errorWithDomain:@"2safe" code:01 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:@"action -or- params not presented", NSLocalizedDescriptionKey, nil]];
-    }
-}
-
-- (void)prepareRequestUrl{
-    [url appendString:self.action];
-    url = [ApiRequest addQueryStringToUrlString:url withDictionary:self.requestparams];
-    if (self.withToken) {
-        url = [ApiRequest addQueryStringToUrlString:url withDictionary:[[NSDictionary alloc] initWithObjectsAndKeys:_token,@"token", nil]];
     }
 }
 
@@ -76,11 +103,27 @@ static NSString *_token;
 }
 
 - (void)sendRequest {
-    NSURLRequest *theRequest=[NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:60.0];
+    NSMutableURLRequest *theRequest=[NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+    [theRequest setHTTPMethod:@"POST"];
+    if (isMultipart)
+        [theRequest addValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", POSTBoundary] forHTTPHeaderField:@"Content-Type"];
+    else
+        [theRequest addValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+    [theRequest setHTTPBody:POSTBody];
+    if (isMultipart) [theRequest setHTTPBodyStream:uploadFileStream];
     NSURLConnection *theConnection=[[NSURLConnection alloc] initWithRequest:theRequest delegate:self];
     if (!theConnection){
         self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
     }
+}
+
+// simple POST request section
+- (void)prepareRequestBody {
+    NSMutableString *b = [NSMutableString string];
+    [b appendFormat:@"cmd=%@", self.action];
+    b = [ApiRequest addQueryStringToUrlString:b withDictionary:self.requestparams];
+    if (self.withToken) [b appendFormat:@"&token=%@", _token];
+    POSTBody = [NSMutableData dataWithData:[b dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
 - (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
@@ -96,8 +139,8 @@ static NSString *_token;
     if ([self isNeedWaitingForToken]) return;
     
     //create the request url
-    [self prepareRequestUrl];
-
+    [self prepareRequestBody];
+    
     //send
     [self sendRequest];
     if (self.error) {
@@ -119,7 +162,7 @@ static NSString *_token;
     if ([self isNeedWaitingForToken]) return;
     
     //create the request url
-    [self prepareRequestUrl];
+    [self prepareRequestBody];
     
     // send the request
     [self sendRequest];
@@ -128,6 +171,50 @@ static NSString *_token;
     }
 }
 
+// multipart POST request section
+- (void)addMultipartParamToPOSTBody:(NSString *)name value:(id)value {
+    if ([value isKindOfClass:[NSString class]])
+        [uploadFileStream addPartWithName:name string:value];
+    if ([value isKindOfClass:[NSData class]])
+        [uploadFileStream addPartWithName:name data:value];
+    if ([value isKindOfClass:[NSFile class]])
+        [uploadFileStream addPartWithName:name path:[value filePath]];
+}
+
+- (void)prepareMultipartRequestBody {
+    [self addMultipartParamToPOSTBody:@"cmd" value:self.action];
+    for (id key in self.requestparams) {
+            [self addMultipartParamToPOSTBody:key value:[self.requestparams objectForKey:key]];
+    }
+    if (self.withToken) [self addMultipartParamToPOSTBody:@"token" value:_token];
+}
+
+- (void) perfomFileUpload:(void (^)(NSDictionary *, NSError *))block{
+    isMultipart = YES;
+    
+    [self checkRequestParams];
+    if (self.error) {
+        block(nil, self.error);
+        return;
+    }
+    //save the callback as block
+    responseBlock = block;
+    
+    //check for token awaiting
+    if ([self isNeedWaitingForToken]) return;
+    
+    //create the request url
+    [self prepareMultipartRequestBody];
+    
+    //send
+    [self sendRequest];
+    if (self.error) {
+        block(nil, self.error);
+    }
+}
+
+
+// events handling section
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
     [receivedData setLength:0];
     self.responseHeaders = response;
@@ -139,7 +226,7 @@ static NSString *_token;
 
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
     // inform the user
-    self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Failed to connect to %@", url], NSLocalizedDescriptionKey, nil]];
+    self.error = error;
     isDataRequest ? responseDataBlock(nil,nil, self.error) : responseBlock(nil, self.error);
 }
 
@@ -155,32 +242,6 @@ static NSString *_token;
         } else
             responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
     }
-}
-
-+(NSString*)urlEscapeString:(NSString *)unencodedString
-{
-    CFStringRef originalStringRef = (__bridge_retained CFStringRef)unencodedString;
-    NSString *s = (__bridge_transfer NSString *)CFURLCreateStringByAddingPercentEscapes(NULL,originalStringRef, NULL, NULL,kCFStringEncodingUTF8);
-    CFRelease(originalStringRef);
-    return s;
-}
-
-
-+(NSMutableString*)addQueryStringToUrlString:(NSString *)urlString withDictionary:(NSDictionary *)dictionary
-{
-    NSMutableString *urlWithQuerystring = [[NSMutableString alloc] initWithString:urlString];
-    
-    for (id key in dictionary) {
-        NSString *keyString = [key description];
-        NSString *valueString = [[dictionary objectForKey:key] description];
-        
-        if ([urlWithQuerystring rangeOfString:@"?"].location == NSNotFound) {
-            [urlWithQuerystring appendFormat:@"?%@=%@", [ApiRequest urlEscapeString:keyString], [ApiRequest urlEscapeString:valueString]];
-        } else {
-            [urlWithQuerystring appendFormat:@"&%@=%@", [ApiRequest urlEscapeString:keyString], [ApiRequest urlEscapeString:valueString]];
-        }
-    }
-    return urlWithQuerystring;
 }
 
 @end

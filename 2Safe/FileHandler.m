@@ -18,7 +18,6 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
     char **paths = eventPaths;
     
     for (i=0; i<numEvents; i++) {
-        int count;
         NSLog(@"Change %llu in %s, flags %u\n", eventIds[i],paths[i],eventFlags[i]);
         //TODO: delegate file events to FileUploader
         //[FileUploader file:<#(NSString *)#> atPath:<#(NSString *)#> triggeredEvent:<#(FileEvent)#>];
