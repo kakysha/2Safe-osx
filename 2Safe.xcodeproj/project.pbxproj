@@ -21,7 +21,6 @@
 		57E9A3ED16677A7700104A97 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 57E9A3EB16677A7700104A97 /* Credits.rtf */; };
 		57E9A3F016677A7700104A97 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 57E9A3EF16677A7700104A97 /* AppDelegate.m */; };
 		57E9A3F316677A7700104A97 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 57E9A3F116677A7700104A97 /* MainMenu.xib */; };
-		57FECB65167A8A8D005FBE30 /* backup in Resources */ = {isa = PBXBuildFile; fileRef = 57FECB64167A8A8D005FBE30 /* backup */; };
 		57FECB74167B4BC9005FBE30 /* PKMultipartInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 57FECB73167B4BC9005FBE30 /* PKMultipartInputStream.m */; };
 		57FECB79167B57AF005FBE30 /* NSFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 57FECB78167B57AF005FBE30 /* NSFile.m */; };
 /* End PBXBuildFile section */
@@ -55,7 +54,6 @@
 		57E9A3EE16677A7700104A97 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		57E9A3EF16677A7700104A97 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		57E9A3F216677A7700104A97 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		57FECB64167A8A8D005FBE30 /* backup */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = backup; path = ../../../Downloads/backup; sourceTree = "<group>"; };
 		57FECB72167B4BC9005FBE30 /* PKMultipartInputStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PKMultipartInputStream.h; sourceTree = "<group>"; };
 		57FECB73167B4BC9005FBE30 /* PKMultipartInputStream.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PKMultipartInputStream.m; sourceTree = "<group>"; };
 		57FECB75167B5744005FBE30 /* NSFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSFile.h; sourceTree = "<group>"; };
@@ -119,7 +117,6 @@
 		57E9A3CD16677A7700104A97 = {
 			isa = PBXGroup;
 			children = (
-				57FECB64167A8A8D005FBE30 /* backup */,
 				57E9A3E216677A7700104A97 /* 2Safe */,
 				57E9A3DB16677A7700104A97 /* Frameworks */,
 				57E9A3D916677A7700104A97 /* Products */,
@@ -248,7 +245,6 @@
 				57E9A3E716677A7700104A97 /* InfoPlist.strings in Resources */,
 				57E9A3ED16677A7700104A97 /* Credits.rtf in Resources */,
 				57E9A3F316677A7700104A97 /* MainMenu.xib in Resources */,
-				57FECB65167A8A8D005FBE30 /* backup in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
