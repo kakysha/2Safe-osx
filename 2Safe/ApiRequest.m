@@ -11,12 +11,15 @@
 #import "PKMultipartInputStream.h"
 #import "NSFile.h"
 
+typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
+
 @implementation ApiRequest {
     NSMutableData *receivedData;
+    NSOutputStream *outputStream;
     void (^responseBlock)(NSDictionary*, NSError *);
     void (^responseDataBlock)(NSData*, NSHTTPURLResponse*, NSError *);
     BOOL isWaiting;
-    BOOL isDataRequest;
+    REQUESTTYPE requestType;
     BOOL isMultipart;
     NSMutableData *POSTBody;
     NSUInteger contentLength;
@@ -25,7 +28,7 @@
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
 NSString *url = @"https://api.2safe.com/";
-static NSString *_token;
+NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
@@ -35,14 +38,14 @@ static NSString *_token;
         _requestparams = params;
         receivedData = [NSMutableData data];
         return self;
-    } else {
+    } else { 
         return nil;
     }
 }
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken {
     if (self = [self initWithAction:action params:params]) {
         _withToken = withToken;
-        if (![LoginController token]) {
+        if (!(_token = [LoginController token])) {
             [LoginController requestTokenWithBlock:^(NSString *res){
                 _token = res;
                 if (isWaiting) {
@@ -50,8 +53,6 @@ static NSString *_token;
                     isWaiting = NO;
                 }
             }];
-        } else {
-            _token = [LoginController token];
         }
         return self;
     } else {
@@ -91,6 +92,12 @@ static NSString *_token;
     if ((self.action == nil) || (self.requestparams == nil)) {
         self.error = [NSError errorWithDomain:@"2safe" code:01 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:@"action -or- params not presented", NSLocalizedDescriptionKey, nil]];
     }
+    for (id key in self.requestparams) {
+        if (![[self.requestparams objectForKey:key] isKindOfClass:[NSString class]]) {
+            isMultipart = YES;
+            break;
+        }
+    }
 }
 
 - (BOOL)isNeedWaitingForToken{
@@ -114,10 +121,12 @@ static NSString *_token;
     NSURLConnection *theConnection=[[NSURLConnection alloc] initWithRequest:theRequest delegate:self];
     if (!theConnection){
         self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+    } else {
+        NSLog(@"Request \"%@\" started", self.action);
     }
 }
 
-// simple POST request section
+// POST BODY generators
 - (void)prepareRequestBody {
     NSMutableString *b = [NSMutableString string];
     [b appendFormat:@"cmd=%@", self.action];
@@ -126,52 +135,14 @@ static NSString *_token;
     POSTBody = [NSMutableData dataWithData:[b dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
-- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
-    [self checkRequestParams];
-    if (self.error) {
-        block(nil, self.error);
-        return;
+- (void)prepareMultipartRequestBody {
+    [self addMultipartParamToPOSTBody:@"cmd" value:self.action];
+    for (id key in self.requestparams) {
+        [self addMultipartParamToPOSTBody:key value:[self.requestparams objectForKey:key]];
     }
-    //save the callback as block
-    responseBlock = block;
-    
-    //check for token awaiting
-    if ([self isNeedWaitingForToken]) return;
-    
-    //create the request url
-    [self prepareRequestBody];
-    
-    //send
-    [self sendRequest];
-    if (self.error) {
-        block(nil, self.error);
-    }
+    if (self.withToken) [self addMultipartParamToPOSTBody:@"token" value:_token];
 }
 
-- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse*, NSError *))block {
-    isDataRequest = YES;
-    [self checkRequestParams];
-    if (self.error) {
-        block(nil, nil, self.error);
-        return;
-    }
-    //save the callback as block
-    responseDataBlock = block;
-    
-    //check for token awaiting
-    if ([self isNeedWaitingForToken]) return;
-    
-    //create the request url
-    [self prepareRequestBody];
-    
-    // send the request
-    [self sendRequest];
-    if (self.error) {
-        block(nil, nil, self.error);
-    }
-}
-
-// multipart POST request section
 - (void)addMultipartParamToPOSTBody:(NSString *)name value:(id)value {
     if ([value isKindOfClass:[NSString class]])
         [uploadFileStream addPartWithName:name string:value];
@@ -181,66 +152,117 @@ static NSString *_token;
         [uploadFileStream addPartWithName:name path:[value filePath]];
 }
 
-- (void)prepareMultipartRequestBody {
-    [self addMultipartParamToPOSTBody:@"cmd" value:self.action];
-    for (id key in self.requestparams) {
-            [self addMultipartParamToPOSTBody:key value:[self.requestparams objectForKey:key]];
-    }
-    if (self.withToken) [self addMultipartParamToPOSTBody:@"token" value:_token];
-}
-
-- (void) perfomFileUpload:(void (^)(NSDictionary *, NSError *))block{
-    isMultipart = YES;
-    
+// public methods
+- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
+    requestType = TextRequest;
     [self checkRequestParams];
     if (self.error) {
         block(nil, self.error);
         return;
     }
-    //save the callback as block
     responseBlock = block;
-    
-    //check for token awaiting
     if ([self isNeedWaitingForToken]) return;
-    
-    //create the request url
-    [self prepareMultipartRequestBody];
-    
-    //send
+    isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
     if (self.error) {
         block(nil, self.error);
     }
 }
 
+- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse*, NSError *))block {
+    requestType = DataRequest;
+    [self checkRequestParams];
+    if (self.error) {
+        block(nil, nil, self.error);
+        return;
+    }
+    responseDataBlock = block;
+    if ([self isNeedWaitingForToken]) return;
+    isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
+    [self sendRequest];
+    if (self.error) {
+        block(nil, nil, self.error);
+    }
+}
+
+- (void)performStreamRequest:(NSOutputStream *)stream withBlock:(void (^)(NSData *, NSHTTPURLResponse *, NSError *))block {
+    outputStream = stream;
+    requestType = StreamRequest;
+    [self checkRequestParams];
+    if (self.error) {
+        block(nil, nil, self.error);
+        return;
+    }
+    responseDataBlock = block;
+    if ([self isNeedWaitingForToken]) return;
+    isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
+    [self sendRequest];
+    if (self.error) {
+        block(nil, nil, self.error);
+    }
+}
 
 // events handling section
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
     [receivedData setLength:0];
+    if (outputStream) [outputStream open];
     self.responseHeaders = response;
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [receivedData appendData:data];
+    switch (requestType) {
+        case TextRequest:
+        case DataRequest:
+            [receivedData appendData:data];
+            break;
+        case StreamRequest: {
+            NSUInteger left = [data length];
+            NSUInteger nwr = 0;
+            do {
+                nwr = [outputStream write:[data bytes] maxLength:left];
+                if (-1 == nwr) break;
+                left -= nwr;
+            } while (left > 0);
+            if (left) {
+                self.error = [outputStream streamError];
+                responseDataBlock(nil, nil, self.error);
+            }
+        }
+            break;
+    }
 }
 
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
     // inform the user
     self.error = error;
-    isDataRequest ? responseDataBlock(nil,nil, self.error) : responseBlock(nil, self.error);
+    switch (requestType) {
+        case TextRequest:
+            responseBlock(nil, self.error);
+            break;
+        case DataRequest:
+        case StreamRequest:
+            if (outputStream) [outputStream close];
+            responseDataBlock(nil,nil, self.error);
+            break;
+    }
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    if (isDataRequest){
-        responseDataBlock(receivedData, self.responseHeaders, nil);
-    }
-    else {
-        NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
-        if ([r valueForKey:@"error_code"]) {
-            self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
-            responseBlock(nil, self.error);
-        } else
-            responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
+    switch (requestType) {
+        case TextRequest: {
+            NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
+            if ([r valueForKey:@"error_code"]) {
+                self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
+                responseBlock(nil, self.error);
+            } else
+                responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
+        }
+            break;
+        case DataRequest:
+        case StreamRequest:
+            if (outputStream) [outputStream open];
+            responseDataBlock(receivedData, self.responseHeaders, nil);
+            break;
     }
 }
 
