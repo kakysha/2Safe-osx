@@ -11,11 +11,12 @@
 
 @implementation LoginController
 
-NSString *_token;
+static NSString *_token;
 NSDictionary *credentials = nil;
 void (^_completionHandler)(NSString *res);
 BOOL isCaptchaNeeded = NO;
 NSString *captchaId;
+NSError *_error;
 
 @synthesize window;
 @synthesize captchaView;
@@ -23,14 +24,18 @@ NSString *captchaId;
 @synthesize password;
 @synthesize captchaImage;
 @synthesize captchaText;
+@synthesize errorMessage;
+@synthesize enterButton;
 
 - (IBAction)enter:(id)sender {
     credentials = [[NSDictionary alloc] initWithObjectsAndKeys:[login stringValue], @"login", [password stringValue], @"password", [captchaText stringValue], @"captcha", captchaId, @"captcha_id", nil];
-    [[self window] close];
     [LoginController auth];
+    [enterButton setEnabled:NO];
 }
 
-- (void)windowDidBecomeKey:(NSNotification *)notification {
+- (void)updateWindow{
+    [window makeKeyAndOrderFront:nil];
+    [enterButton setEnabled:YES];
     if (isCaptchaNeeded) {
         [captchaView setHidden:NO];
         ApiRequest *cr = [[ApiRequest alloc] initWithAction:@"get_captcha" params:@{}];
@@ -41,16 +46,19 @@ NSString *captchaId;
             isCaptchaNeeded = NO;
         }];
     }
+    if ([LoginController error]) {
+        [errorMessage setStringValue:[[LoginController error] localizedDescription]];
+    }
 }
 
 + (void)showLoginWindowWithCaptcha:(BOOL)wc{
     isCaptchaNeeded = wc;
     NSLog(@"Asking user for login/password");
-    [[[NSApplication sharedApplication] windows][0] makeKeyAndOrderFront:nil]; // DIRTY SLUTTY CODE HERE, BEWARE!
+    [[[[NSApplication sharedApplication] windows][0] delegate] updateWindow]; // DIRTY SLUTTY CODE HERE, BEWARE!
 }
 
 + (NSString *)token{
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token for debugging
     if (_token != nil) {
         NSLog(@"Getting token from Static Variable");
         return _token;
@@ -63,13 +71,17 @@ NSString *captchaId;
     return _token;
 }
 
++ (NSError *)error{
+    return _error;
+}
+
 + (void)requestTokenWithBlock:(void(^)(NSString *))responseBlock {
     _completionHandler = responseBlock;
 }
 
 + (void)auth{
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
-    
+    _error = nil;
     if (!credentials && !(credentials = [LoginController getCredentialsFromKeychain])) {
         [LoginController showLoginWindowWithCaptcha:NO];
         return;
@@ -77,18 +89,20 @@ NSString *captchaId;
     
     ApiRequest *api = [[ApiRequest alloc] initWithAction:@"auth" params:credentials];
     [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        if (e) _error = e;
         if (!e) {
-            [[NSUserDefaults standardUserDefaults] setObject:[response valueForKey:@"token"] forKey:@"token"];
+            _token = [response valueForKey:@"token"];
+            [[NSUserDefaults standardUserDefaults] setObject:_token forKey:@"token"];
             
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
+
+            if ([SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e]) NSLog(@"Password for %@ is stored in keychain", [credentials valueForKey:@"login"]);
+            else NSLog(@"Can't store the password in keychain, error:%@", [e localizedDescription]);
+            [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
             
             //call the callback
             _completionHandler([response valueForKey:@"token"]);
             _completionHandler = nil;
-
-            if ([SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e]) NSLog(@"Password for %@ is stored in keychain", [credentials valueForKey:@"login"]);
-            else NSLog(@"Can't store the password in keychain, error:%@", [e localizedDescription]);
-            
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:YES];

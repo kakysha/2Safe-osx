@@ -49,7 +49,8 @@ NSString *_token;
             [LoginController requestTokenWithBlock:^(NSString *res){
                 _token = res;
                 if (isWaiting) {
-                    [self performRequestWithBlock:responseBlock];
+                    if (responseBlock) [self performRequestWithBlock:responseBlock];
+                    else [self performDataRequestWithBlock:responseDataBlock];
                     isWaiting = NO;
                 }
             }];

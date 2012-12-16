@@ -67,7 +67,7 @@
                 sleep(2);
                 //example of downloading files with NSOutputStream - OK!
                 ApiRequest *r4 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"1138179033539"} withToken:YES];
-                [r4 performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:@"file_stream.png" append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
+                [r4 performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:@"cherepashka.mov" append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
                     if (!e) {
                         NSLog(@"File saved to: file_stream.png");
                     } else {

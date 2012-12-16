@@ -18,11 +18,14 @@
 @property (weak) IBOutlet NSTextField *login;
 @property (weak) IBOutlet NSImageView *captchaImage;
 @property (weak) IBOutlet NSTextFieldCell *captchaText;
+@property (weak) IBOutlet NSTextField *errorMessage;
+@property (weak) IBOutlet NSButton *enterButton;
 
 - (IBAction)enter:(id)sender;
-- (void)windowDidBecomeKey:(NSNotification *)notification;
+- (void)updateWindow;
 
 + (NSString *)token;
++ (NSError *)error;
 + (void)requestTokenWithBlock:(void(^)(NSString *))responseBlock;
 
 @end
