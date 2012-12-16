@@ -65,7 +65,7 @@ NSError *_error;
     }
 
     _token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
-    if (_token == nil) {
+    if (!_token) {
         [LoginController auth];
     } else NSLog(@"Getting token from UserDefaults");
     return _token;
