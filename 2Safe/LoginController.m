@@ -50,7 +50,7 @@ NSString *captchaId;
 }
 
 + (NSString *)token{
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
     if (_token != nil) {
         NSLog(@"Getting token from Static Variable");
         return _token;
