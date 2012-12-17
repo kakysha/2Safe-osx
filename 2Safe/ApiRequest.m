@@ -205,8 +205,12 @@ NSString *_token;
 
 // events handling section
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
-    [receivedData setLength:0];
-    if (outputStream) [outputStream open];
+    if ([response statusCode] == 200) {
+        [receivedData setLength:0];
+        if (outputStream) [outputStream open];
+    } else {
+        outputStream = nil; //set to null to prevent writing error information to file
+    }
     self.responseHeaders = response;
 }
 
@@ -217,16 +221,20 @@ NSString *_token;
             [receivedData appendData:data];
             break;
         case StreamRequest: {
-            NSUInteger left = [data length];
-            NSUInteger nwr = 0;
-            do {
-                nwr = [outputStream write:[data bytes] maxLength:left];
-                if (-1 == nwr) break;
-                left -= nwr;
-            } while (left > 0);
-            if (left) {
-                self.error = [outputStream streamError];
-                responseDataBlock(nil, nil, self.error);
+            if (outputStream) {
+                NSUInteger left = [data length];
+                NSUInteger nwr = 0;
+                do {
+                    nwr = [outputStream write:[data bytes] maxLength:left];
+                    if (-1 == nwr) break;
+                    left -= nwr;
+                } while (left > 0);
+                if (left) {
+                    self.error = [outputStream streamError];
+                    responseDataBlock(nil, nil, self.error);
+                }
+            } else {
+                [receivedData appendData:data]; //error (statusCode != 200), write it to data
             }
         }
             break;
@@ -249,19 +257,23 @@ NSString *_token;
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
+    //check for error
+    NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
+    if ([r valueForKey:@"error_code"]) {
+        self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
+        if (requestType == TextRequest) responseBlock(nil, self.error);
+        else responseDataBlock(nil, nil, self.error);
+        return;
+    }
+    //ok - return the result
     switch (requestType) {
         case TextRequest: {
-            NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
-            if ([r valueForKey:@"error_code"]) {
-                self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
-                responseBlock(nil, self.error);
-            } else
                 responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
         }
             break;
         case DataRequest:
         case StreamRequest:
-            if (outputStream) [outputStream open];
+            if (outputStream) [outputStream close];
             responseDataBlock(receivedData, self.responseHeaders, nil);
             break;
     }
