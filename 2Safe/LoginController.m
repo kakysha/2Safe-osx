@@ -58,17 +58,14 @@ NSError *_error;
 }
 
 + (NSString *)token{
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token for debugging
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token for debugging
     if (_token != nil) {
         NSLog(@"Getting token from Static Variable");
         return _token;
     }
 
-    _token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
-    if (!_token) {
-        [LoginController auth];
-    } else NSLog(@"Getting token from UserDefaults");
-    return _token;
+    if ((_token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"])) NSLog(@"Getting token from UserDefaults");
+    return _token; //beware: we can return nil token here, the receiver must call auth process by itself!
 }
 
 + (NSError *)error{
@@ -77,6 +74,7 @@ NSError *_error;
 
 + (void)requestTokenWithBlock:(void(^)(NSString *))responseBlock {
     _completionHandler = responseBlock;
+    [LoginController auth];
 }
 
 + (void)auth{
@@ -96,8 +94,7 @@ NSError *_error;
             
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
 
-            if ([SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e]) NSLog(@"Password for %@ is stored in keychain", [credentials valueForKey:@"login"]);
-            else NSLog(@"Can't store the password in keychain, error:%@", [e localizedDescription]);
+            [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];
             [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
             
             //call the callback

@@ -28,7 +28,7 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
 NSString *url = @"https://api.2safe.com/";
-NSString *_token;
+static NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
@@ -205,10 +205,11 @@ NSString *_token;
 
 // events handling section
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
+    [receivedData setLength:0];
     if ([response statusCode] == 200) {
-        [receivedData setLength:0];
         if (outputStream) [outputStream open];
     } else {
+        NSLog(@"%li", response.statusCode);
         outputStream = nil; //set to null to prevent writing error information to file
     }
     self.responseHeaders = response;
@@ -261,8 +262,20 @@ NSString *_token;
     NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
     if ([r valueForKey:@"error_code"]) {
         self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
-        if (requestType == TextRequest) responseBlock(nil, self.error);
-        else responseDataBlock(nil, nil, self.error);
+        
+        //if authentication error - try to reauthenticate and resend the request
+        if (([self.error code] == 1)|| //not authorized
+            ([self.error code] == 15)) { //incorrect token
+            NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
+            [LoginController requestTokenWithBlock:^(NSString *res){
+                _token = res;
+                if (responseBlock) [self performRequestWithBlock:responseBlock];
+                else [self performDataRequestWithBlock:responseDataBlock];
+            }];
+        } else {
+            if (requestType == TextRequest) responseBlock(nil, self.error);
+            else responseDataBlock(nil, nil, self.error);
+        }
         return;
     }
     //ok - return the result
