@@ -28,7 +28,7 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
 NSString *url = @"https://api.2safe.com/";
-NSString *_token;
+static NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
@@ -49,7 +49,8 @@ NSString *_token;
             [LoginController requestTokenWithBlock:^(NSString *res){
                 _token = res;
                 if (isWaiting) {
-                    [self performRequestWithBlock:responseBlock];
+                    if (responseBlock) [self performRequestWithBlock:responseBlock];
+                    else [self performDataRequestWithBlock:responseDataBlock];
                     isWaiting = NO;
                 }
             }];
@@ -205,7 +206,12 @@ NSString *_token;
 // events handling section
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSHTTPURLResponse *)response {
     [receivedData setLength:0];
-    if (outputStream) [outputStream open];
+    if ([response statusCode] == 200) {
+        if (outputStream) [outputStream open];
+    } else {
+        NSLog(@"%li", response.statusCode);
+        outputStream = nil; //set to null to prevent writing error information to file
+    }
     self.responseHeaders = response;
 }
 
@@ -216,16 +222,20 @@ NSString *_token;
             [receivedData appendData:data];
             break;
         case StreamRequest: {
-            NSUInteger left = [data length];
-            NSUInteger nwr = 0;
-            do {
-                nwr = [outputStream write:[data bytes] maxLength:left];
-                if (-1 == nwr) break;
-                left -= nwr;
-            } while (left > 0);
-            if (left) {
-                self.error = [outputStream streamError];
-                responseDataBlock(nil, nil, self.error);
+            if (outputStream) {
+                NSUInteger left = [data length];
+                NSUInteger nwr = 0;
+                do {
+                    nwr = [outputStream write:[data bytes] maxLength:left];
+                    if (-1 == nwr) break;
+                    left -= nwr;
+                } while (left > 0);
+                if (left) {
+                    self.error = [outputStream streamError];
+                    responseDataBlock(nil, nil, self.error);
+                }
+            } else {
+                [receivedData appendData:data]; //error (statusCode != 200), write it to data
             }
         }
             break;
@@ -248,19 +258,35 @@ NSString *_token;
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
+    //check for error
+    NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
+    if ([r valueForKey:@"error_code"]) {
+        self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
+        
+        //if authentication error - try to reauthenticate and resend the request
+        if (([self.error code] == 1)|| //not authorized
+            ([self.error code] == 15)) { //incorrect token
+            NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
+            [LoginController requestTokenWithBlock:^(NSString *res){
+                _token = res;
+                if (responseBlock) [self performRequestWithBlock:responseBlock];
+                else [self performDataRequestWithBlock:responseDataBlock];
+            }];
+        } else {
+            if (requestType == TextRequest) responseBlock(nil, self.error);
+            else responseDataBlock(nil, nil, self.error);
+        }
+        return;
+    }
+    //ok - return the result
     switch (requestType) {
         case TextRequest: {
-            NSDictionary *r = [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingMutableLeaves error:nil];
-            if ([r valueForKey:@"error_code"]) {
-                self.error = [NSError errorWithDomain:@"2safe" code:[[r valueForKey:@"error_code"] intValue] userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[r valueForKey:@"error_msg"], NSLocalizedDescriptionKey, nil]];
-                responseBlock(nil, self.error);
-            } else
                 responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
         }
             break;
         case DataRequest:
         case StreamRequest:
-            if (outputStream) [outputStream open];
+            if (outputStream) [outputStream close];
             responseDataBlock(receivedData, self.responseHeaders, nil);
             break;
     }
