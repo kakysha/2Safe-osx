@@ -14,13 +14,20 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
                      const FSEventStreamEventId eventIds[])
 {
     int i;
-    
     char **paths = eventPaths;
     
     for (i=0; i<numEvents; i++) {
         NSLog(@"Change %llu in %s, flags %u\n", eventIds[i],paths[i],eventFlags[i]);
-        //TODO: delegate file events to FileUploader
-        //[FileUploader file:<#(NSString *)#> atPath:<#(NSString *)#> triggeredEvent:<#(FileEvent)#>];
+        FileEvent trigEvent;
+        NSString *s = [[NSString alloc] initWithCString:paths[i] encoding:NSASCIIStringEncoding];
+        NSString* pathName = [s stringByDeletingLastPathComponent];
+        NSString* fileName = [s lastPathComponent];
+        if(eventFlags[i] == kFSEventStreamEventFlagItemCreated) trigEvent = FILE_IS_CREATED;
+        else if(eventFlags[i] == kFSEventStreamEventFlagItemModified) trigEvent = FILE_IS_MODIFIED;
+        else if(eventFlags[i] == kFSEventStreamEventFlagItemRemoved) trigEvent = FILE_IS_DELETED;
+        else if(eventFlags[i] == kFSEventStreamEventFlagItemRenamed) trigEvent = FILE_IS_RENAMED;
+        //delegate file events to FileUploader
+        [FileUploader file: fileName atPath:pathName triggeredEvent:trigEvent];
     }
 }
 

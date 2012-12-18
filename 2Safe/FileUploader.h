@@ -11,7 +11,8 @@
 typedef enum fileEventTypes{
     FILE_IS_CREATED,
     FILE_IS_MODIFIED,
-    FILE_IS_DELETED
+    FILE_IS_DELETED,
+    FILE_IS_RENAMED
 } FileEvent;
 
 @interface FileUploader : NSObject
