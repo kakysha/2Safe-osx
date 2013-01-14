@@ -122,7 +122,7 @@ NSError *_error;
         NSString *login = [[accounts lastObject] valueForKey:kSSKeychainAccountKey];
         NSString *password = [SSKeychain passwordForService:@"2safe" account:login error:&e];
         if (e) return nil;
-        else NSLog(@"Obtaining login(%@) & password(%@) from keychain", login, password);
+        else NSLog(@"Obtaining login(%@) & password from keychain", login);
         return [[NSDictionary alloc] initWithObjectsAndKeys:login, @"login", password, @"password", nil];
     }
     NSLog(@"No logins in keychain");

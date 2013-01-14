@@ -10,8 +10,8 @@
 
 @interface NSFile : NSObject
 
-- (id)initWithFileAtPath:(NSString *)path;
-
 @property NSString *filePath;
+
+- (id)initWithFileAtPath:(NSString *)path;
 
 @end
