@@ -9,11 +9,10 @@
 #import "AppDelegate.h"
 #import "ApiRequest.h"
 #import "FileHandler.h"
-#import "Synchronization.h"
 #import "FileTreeWrapper.h"
 #import "NSFile.h"
 #import "Database.h"
-
+#import "Synchronization.h"
 
 @implementation AppDelegate
 

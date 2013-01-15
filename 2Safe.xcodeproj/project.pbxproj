@@ -237,6 +237,8 @@
 				57FECB78167B57AF005FBE30 /* NSFile.m */,
 				37F5737316A5E66A00A40D15 /* NSMutableArray+Stack.h */,
 				37F5737416A5E66A00A40D15 /* NSMutableArray+Stack.m */,
+				571638F316A359FF00B417C1 /* Database.h */,
+				571638F416A359FF00B417C1 /* Database.m */,
 			);
 			name = include;
 			sourceTree = "<group>";
@@ -318,6 +320,12 @@
 				57FECB79167B57AF005FBE30 /* NSFile.m in Sources */,
 				3790DFB816A35472001C8FD9 /* Synchronization.m in Sources */,
 				37F5737516A5E66A00A40D15 /* NSMutableArray+Stack.m in Sources */,
+				571638EC16A3564E00B417C1 /* FMDatabase.m in Sources */,
+				571638ED16A3564E00B417C1 /* FMDatabaseAdditions.m in Sources */,
+				571638EE16A3564E00B417C1 /* FMDatabasePool.m in Sources */,
+				571638EF16A3564E00B417C1 /* FMDatabaseQueue.m in Sources */,
+				571638F016A3564E00B417C1 /* FMResultSet.m in Sources */,
+				571638F516A359FF00B417C1 /* Database.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

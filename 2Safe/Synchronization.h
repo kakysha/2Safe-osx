@@ -9,10 +9,7 @@
 #import <Foundation/Foundation.h>
 
 @interface Synchronization : NSObject
-{
-    @private
-    NSMutableArray *stack;
-}
+
 -(void)getModificationDatesAtPath:(NSString*) folder;
 
 @end

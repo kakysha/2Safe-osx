@@ -8,14 +8,24 @@
 
 #import "Synchronization.h"
 #import "FileHandler.h"
+#import "NSMutableArray+Stack.h"
 
-@implementation Synchronization
+@implementation Synchronization{
+    NSMutableArray *stack;
+}
 
 -(void)getModificationDatesAtPath:(NSString*) folder {
-	NSFileManager *fm = [NSFileManager defaultManager];
+	stack = [NSMutableArray arrayWithCapacity:100];
+    [stack addObject:folder];
+    while([stack count] != 0){
+        [self lookUp:[stack pop]];
+    }
+}
+
+-(void)lookUp:(NSString*) folder {
+    NSFileManager *fm = [NSFileManager defaultManager];
     FileHandler *fh = [[FileHandler alloc] init];
 	NSArray* files = [fm directoryContentsAtPath:folder];
-	//NSMutableArray *directoryList = [NSMutableArray arrayWithCapacity:10];
     NSString* mDate;
     
 	for(NSString *file in files) {
@@ -26,16 +36,12 @@
 		//	[directoryList addObject:file];
 		//}
         if(isDir){
-            [self getModificationDatesAtPath:path];
+            [stack push:path];
         }
         mDate = [fh getModificationDate:path];
         NSLog(@"Modification Date: %@ of %@", mDate, path);
 	}
-    
-}
 
--(void)lookUp:(NSString*) folder {
-    
 }
 
 @end
