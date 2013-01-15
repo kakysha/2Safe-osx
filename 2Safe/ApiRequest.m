@@ -28,7 +28,7 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
 NSString *url = @"https://api.2safe.com/";
-static NSString *_token;
+NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {

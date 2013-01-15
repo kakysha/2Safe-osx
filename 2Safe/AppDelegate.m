@@ -12,6 +12,7 @@
 #import "Synchronization.h"
 #import "FileTreeWrapper.h"
 #import "NSFile.h"
+#import "Database.h"
 
 
 @implementation AppDelegate
@@ -22,6 +23,12 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    //testing db
+    Database *db = [Database databaseForAccount:@"kakysha"];
+    NSDictionary *d = [db getElementById:@"1"];
+    for(id key in d)
+        NSLog(@"key=%@ value=%@", key, [d objectForKey:key]);
+    
     /*//example of tree wrapper
     [FileTreeWrapper clearTree];
     [FileTreeWrapper addFolder:nil folderID:@"1" atPath:nil];
