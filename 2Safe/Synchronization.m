@@ -25,7 +25,8 @@
 -(void)lookUp:(NSString*) folder {
     NSFileManager *fm = [NSFileManager defaultManager];
     FileHandler *fh = [[FileHandler alloc] init];
-	NSArray* files = [fm directoryContentsAtPath:folder];
+    NSError *err;
+	NSArray* files = [fm contentsOfDirectoryAtPath:folder error:&err];
     NSString* mDate;
     
 	for(NSString *file in files) {
