@@ -25,5 +25,6 @@
 //TODO: implement functions
 //-(void)createFolder:(NSString *)folderName atPath:(NSString *)relativePath;
 
+- (NSString*) getModificationDate: (NSString*) path;
 
 @end

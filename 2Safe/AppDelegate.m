@@ -9,6 +9,7 @@
 #import "AppDelegate.h"
 #import "ApiRequest.h"
 #import "FileHandler.h"
+#import "Synchronization.h"
 #import "FileTreeWrapper.h"
 #import "NSFile.h"
 
@@ -83,6 +84,9 @@
     FileHandler *mainFileHandler = [[FileHandler alloc] init];
     [mainFileHandler startTracking];
     */
+    
+    Synchronization *sync = [[Synchronization alloc] init];
+    [sync getModificationDatesAtPath:@"/Users/dan/Downloads"];
 }
 
 @end

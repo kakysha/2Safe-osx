@@ -152,7 +152,7 @@ NSString* getFileMD5hash(NSString* filePath) {
     return ns_result = (__bridge NSString*) result;
 }
 
-- (NSString*) getModificationData: (NSString*) path {
+- (NSString*) getModificationDate: (NSString*) path {
     NSDictionary* fileAttribs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
     NSDate *date = [fileAttribs fileModificationDate];
     NSTimeInterval ti = [date timeIntervalSince1970];
