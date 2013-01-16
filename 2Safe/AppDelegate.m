@@ -25,6 +25,7 @@
     //testing FSElement
     FSElement *e = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
     NSLog(@"name:%@ hash:%@ mdate:%@", e.name, e.hash, e.mdate);
+    
     //testing db
     Database *db = [Database databaseForAccount:@"kakysha"];
     NSDictionary *d = [db getElementById:@"2"];

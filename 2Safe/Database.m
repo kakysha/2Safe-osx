@@ -60,6 +60,7 @@
     __block BOOL res = NO;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         res = [db executeUpdate:@"INSERT into elements(id,name,hash,mdate,pid) VALUES (:id, :name, :hash, :mdate, :pid)" withParameterDictionary:el];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
     }];
     return res;
 }
@@ -68,6 +69,7 @@
     __block NSDictionary *d;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE id=?", idx];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
         while ([res next])
             d = [res resultDictionary];
     }];
@@ -78,6 +80,7 @@
     __block BOOL res = NO;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         res = [db executeUpdate:@"DELETE from elements WHERE id=?", idx];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
     }];
     return res;
 }
@@ -92,6 +95,7 @@
 
     [_dbQueue inDatabase:^(FMDatabase *db) {
         res = [db executeUpdate:sql withParameterDictionary:val];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
     }];
     return res;
 }
