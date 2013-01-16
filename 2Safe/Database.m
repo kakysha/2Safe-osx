@@ -82,4 +82,18 @@
     return res;
 }
 
+- (BOOL)updateElementWithId:(NSString *)idx withValues:(NSDictionary *)val{
+    __block BOOL res = NO;
+    NSMutableString *sql = [NSMutableString stringWithString:@"UPDATE elements SET name = name"];
+    for (id key in val) {
+        [sql appendFormat:@",%@ = :%@", key, key];
+    }
+    [sql appendFormat:@" WHERE id='%@'", idx];
+
+    [_dbQueue inDatabase:^(FMDatabase *db) {
+        res = [db executeUpdate:sql withParameterDictionary:val];
+    }];
+    return res;
+}
+
 @end

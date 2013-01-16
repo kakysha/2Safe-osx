@@ -24,9 +24,10 @@
 {
     //testing db
     Database *db = [Database databaseForAccount:@"kakysha"];
-    NSDictionary *d = [db getElementById:@"1"];
+    NSDictionary *d = [db getElementById:@"2"];
     for(id key in d)
         NSLog(@"key=%@ value=%@", key, [d objectForKey:key]);
+    [db updateElementWithId:@"2" withValues:[NSDictionary dictionaryWithObjectsAndKeys:@"file1",@"name",@"a345f3d",@"hash", nil]];
     
     /*//example of tree wrapper
     [FileTreeWrapper clearTree];

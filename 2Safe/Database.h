@@ -18,5 +18,6 @@
 - (BOOL)insertElement:(NSDictionary *)el;
 - (NSDictionary *)getElementById:(NSString *)idx;
 - (BOOL)deleteElementById:(NSString *)idx;
+- (BOOL)updateElementWithId:(NSString *)idx withValues:(NSDictionary *)val;
 
 @end
