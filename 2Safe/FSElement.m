@@ -24,11 +24,12 @@
     _hash = [FSElement getMD5HashForFile:filePath];
     return _hash;
 }
-- (void) setHash:(NSString *)hash {
-    _hash = hash;
-}
 
 - (id)initWithPath:(NSString *)path {
+    if (![[NSFileManager defaultManager] isReadableFileAtPath:path]) {
+        NSLog(@"File %@ is not readable", path);
+        return nil;
+    }
     filePath = path;
     name = [path lastPathComponent];
     mdate = [FSElement getModificationDateForFile:path];

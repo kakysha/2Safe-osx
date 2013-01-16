@@ -13,7 +13,7 @@
 @property NSString *filePath;
 @property NSString *id_;
 @property NSString *name;
-@property NSString *hash;
+@property(nonatomic) NSString *hash;
 @property NSString *mdate;
 @property NSString *pid;
 
