@@ -16,9 +16,10 @@
 + (id)databaseForAccount:(NSString *)acc;
 - (id)initForAccount:(NSString *)acc;
 
-- (BOOL)insertElement:(NSDictionary *)el;
+- (BOOL)insertElement:(FSElement *)el;
 - (FSElement *)getElementById:(NSString *)idx;
 - (BOOL)deleteElementById:(NSString *)idx;
 - (BOOL)updateElementWithId:(NSString *)idx withValues:(FSElement *)val;
+- (NSArray *)childElementsOfId:(NSString *)idx;
 
 @end

@@ -115,5 +115,18 @@
     }];
     return res;
 }
+- (NSArray *)childElementsOfId:(NSString *)idx {
+    __block NSMutableArray *childs = [NSMutableArray arrayWithCapacity:30];
+    [_dbQueue inDatabase:^(FMDatabase *db) {
+        FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE pid=?", idx];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        NSDictionary *d;
+        while ([res next]) {
+            d = [res resultDictionary];
+            [childs addObject:[Database elementFromDict:d]];
+        }
+    }];
+    return childs;
+}
 
 @end
