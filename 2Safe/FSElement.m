@@ -21,6 +21,9 @@
 @synthesize hash = _hash;
 - (NSString *)hash {
     if (_hash) return _hash;
+    BOOL isDir = NO;
+    [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir];
+    if (isDir) return nil;
     _hash = [FSElement getMD5HashForFile:filePath];
     return _hash;
 }
