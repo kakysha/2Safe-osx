@@ -16,6 +16,15 @@
     NSMutableArray *_stack;
     NSMutableArray *clientInsertionsQueue;
     NSMutableArray *clientDeletionsQueue;
+    NSFileManager *fm;
+}
+
+- (id) init {
+    if (self = [super init]) {
+        fm = [NSFileManager defaultManager];
+        return self;
+    }
+    return nil;
 }
 
 -(void) getClientQueues:(NSString*) folder {
@@ -29,26 +38,25 @@
     while([_stack count] != 0){
         FSElement *stackElem = [_stack pop];
         NSMutableArray* bdfiles = [NSMutableArray arrayWithArray:[db childElementsOfId:[stackElem id]]];
-        NSFileManager *fm = [NSFileManager defaultManager];
         NSError *err;
         NSArray* files = [fm contentsOfDirectoryAtPath:stackElem.filePath error:&err];
-        
-        
         for(NSString *file in files) {
             NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
             BOOL isDir = NO;
-            [fm fileExistsAtPath:path isDirectory:(&isDir)];
+            [fm fileExistsAtPath:path isDirectory:&isDir];
             FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
             
-            NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj name] == elementToAdd.name){return YES;}else{return NO;}}];
+            NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj name] == elementToAdd.name){*stop = YES;return YES;} else return NO;}];
             if (foundIndex == NSNotFound) {
                 [clientInsertionsQueue addObject:elementToAdd];
             }
             else {
+                FSElement *dbDir = bdfiles[foundIndex];
                 if(isDir){
-                    [_stack push:bdfiles[foundIndex]];
-                }
-                if (elementToAdd.mdate != [bdfiles[foundIndex] mdate]){
+                    dbDir.filePath = elementToAdd.filePath;
+                    [_stack push:dbDir];
+                } else
+                if (elementToAdd.mdate != dbDir.mdate){
                     [clientInsertionsQueue addObject:elementToAdd];
                 }
                 [bdfiles removeObjectAtIndex:foundIndex];
