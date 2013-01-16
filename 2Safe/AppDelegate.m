@@ -33,7 +33,9 @@
     FSElement *e2 = [db getElementById:@"2"];
     NSLog(@"id:%@ name:%@ hash:%@ mdate:%@ pid:%@", e2.id, e2.name, e2.hash, e2.mdate, e2.pid);
     [db updateElementWithId:@"2" withValues:e1];
-    
+    NSArray *child = [db childElementsOfId:@"1"];
+    for (int i = 0; i < child.count; i++)
+        NSLog(@"%@", [child[i] name]);
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];
     [sync getModificationDatesAtPath:@"/Users/Drunk/Downloads/press340_FN"];
