@@ -45,8 +45,7 @@
             BOOL isDir = NO;
             [fm fileExistsAtPath:path isDirectory:&isDir];
             FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
-            
-            NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj name] == elementToAdd.name){*stop = YES;return YES;} else return NO;}];
+            NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:elementToAdd.name]){*stop = YES;return YES;} return NO;}];
             if (foundIndex == NSNotFound) {
                 [clientInsertionsQueue addObject:elementToAdd];
             }
@@ -56,7 +55,7 @@
                     dbDir.filePath = elementToAdd.filePath;
                     [_stack push:dbDir];
                 } else
-                if (elementToAdd.mdate != dbDir.mdate){
+                if (![elementToAdd.mdate isEqualToString:dbDir.mdate]){
                     [clientInsertionsQueue addObject:elementToAdd];
                 }
                 [bdfiles removeObjectAtIndex:foundIndex];
@@ -69,7 +68,7 @@
             }
         }
     }
-    
+    for (int i = 0; i < clientInsertionsQueue.count; i++) NSLog(@"%@", [clientInsertionsQueue[i] filePath]);
 }
 
 
