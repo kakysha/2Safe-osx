@@ -11,7 +11,7 @@
 @interface FSElement : NSObject
 
 @property NSString *filePath;
-@property NSString *id_;
+@property NSString *id;
 @property NSString *name;
 @property(nonatomic) NSString *hash;
 @property NSString *mdate;

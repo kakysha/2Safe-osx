@@ -14,7 +14,7 @@
 @implementation FSElement
 
 @synthesize filePath;
-@synthesize id_;
+@synthesize id;
 @synthesize name;
 @synthesize mdate;
 @synthesize pid;
