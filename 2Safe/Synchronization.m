@@ -34,7 +34,7 @@
     Database *db = [Database databaseForAccount:@"kakysha"];
     _stack = [NSMutableArray arrayWithCapacity:100];
     FSElement *firstElem = [[FSElement alloc] initWithPath:folder];
-    firstElem.id = @"1";
+    firstElem.id = @"1108986033540";
     [_stack addObject:firstElem];
     while([_stack count] != 0){
         FSElement *stackElem = [_stack pop];
@@ -77,7 +77,7 @@
     //UPLOADING FILES!
     for(FSElement *fse in clientInsertionsQueue) {
         
-        //example of sending multipart/form-data request for file uploading
+        //TODO: firstly, create the folders, after than - upload files!
         ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
         [r3 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
             if (!e) {
