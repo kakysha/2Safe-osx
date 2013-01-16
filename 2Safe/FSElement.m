@@ -122,8 +122,8 @@
     NSDictionary* fileAttribs = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil];
     NSDate *date = [fileAttribs fileModificationDate];
     NSTimeInterval ti = [date timeIntervalSince1970];
-    ti = round(ti);
-    NSString *result = [NSString stringWithFormat: @"%f", ti];
+    int t = (int)ti;
+    NSString *result = [NSString stringWithFormat: @"%i", t];
     return result;
 }
 
