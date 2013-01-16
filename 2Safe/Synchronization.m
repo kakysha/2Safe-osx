@@ -9,40 +9,50 @@
 #import "Synchronization.h"
 #import "FileHandler.h"
 #import "NSMutableArray+Stack.h"
+#import "Database.h"
+#import "FSElement.h"
 
 @implementation Synchronization{
     NSMutableArray *_stack;
+    NSMutableArray *clientInsertionsQueue;
+    NSMutableArray *clientDeletionsQueue;
 }
 
--(void)getModificationDatesAtPath:(NSString*) folder {
-	_stack = [NSMutableArray arrayWithCapacity:100];
-    [_stack addObject:folder];
+-(NSMutableDictionary*) getClientQueue:(NSString*) folder {
+    clientInsertionsQueue = [NSMutableArray arrayWithCapacity:20];
+    clientDeletionsQueue = [NSMutableArray arrayWithCapacity:20];
+    Database *db = [Database databaseForAccount:@"kakysha"];
+    _stack = [NSMutableArray arrayWithCapacity:100];
+    FSElement *firstElem = [[FSElement alloc] initWithPath:folder];
+    firstElem.id = @"1";
+    [_stack addObject:firstElem];
     while([_stack count] != 0){
-        [self lookUp:[_stack pop]];
+        FSElement *stackElem = [_stack pop];
+        NSArray* bdfiles = [db childElementsOfId:[stackElem id]];
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSError *err;
+        NSArray* files = [fm contentsOfDirectoryAtPath:stackElem.filePath error:&err];
+        
+        
+        for(NSString *file in files) {
+            NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
+            BOOL isDir = NO;
+            [fm fileExistsAtPath:path isDirectory:(&isDir)];
+            FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
+            if(isDir){
+                [_stack push:elementToAdd];
+            }
+            NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj name] == elementToAdd.name){return YES;}else{return NO;}}];
+            if (foundIndex == NSNotFound) {
+                [clientInsertionsQueue addObject:elementToAdd];
+            }
+            else {
+                if (elementToAdd.mdate == bdfiles[foundIndex])
+            }
+
     }
-}
-
--(void)lookUp:(NSString*) folder {
-    NSFileManager *fm = [NSFileManager defaultManager];
-    FileHandler *fh = [[FileHandler alloc] init];
-    NSError *err;
-	NSArray* files = [fm contentsOfDirectoryAtPath:folder error:&err];
-    NSString* mDate;
     
-	for(NSString *file in files) {
-		NSString *path = [folder stringByAppendingPathComponent:file];
-		BOOL isDir = NO;
-		[fm fileExistsAtPath:path isDirectory:(&isDir)];
-		//if(isDir) {
-		//	[directoryList addObject:file];
-		//}
-        if(isDir){
-            [_stack push:path];
-        }
-        mDate = [fh getModificationDate:path];
-        NSLog(@"Modification Date: %@ of %@", mDate, path);
-	}
-
 }
+
 
 @end
