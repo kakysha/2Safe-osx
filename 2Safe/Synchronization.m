@@ -11,6 +11,7 @@
 #import "NSMutableArray+Stack.h"
 #import "Database.h"
 #import "FSElement.h"
+#import "ApiRequest.h"
 
 @implementation Synchronization{
     NSMutableArray *_stack;
@@ -62,6 +63,44 @@
         }
     }
     
+}
+
+-(void) performQueues {
+    
+    //UPLOADING FILES!
+    for(FSElement *fse in clientInsertionsQueue) {
+        
+        //example of sending multipart/form-data request for file uploading
+        ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
+        [r3 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+            if (!e) {
+                for (id key in response) {
+                    NSLog(@"%@ = %@", key, [response objectForKey:key]);
+                }
+            } else {
+                NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+            }
+            sleep(2);
+         }
+        ];
+        
+    }
+    
+    //DELETING FILES!
+    for(FSElement *fse in clientDeletionsQueue) {
+        ApiRequest *r4 = [[ApiRequest alloc] initWithAction:@"remove_file" params:@{@"id" : fse.id, @"remove_now":@"1"} withToken:YES];
+        [r4 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+            if (!e) {
+                for (id key in response) {
+                    NSLog(@"%@ = %@", key, [response objectForKey:key]);
+                }
+            } else {
+                NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+            }
+            sleep(2);
+        }
+         ];
+    }
 }
 
 
