@@ -19,40 +19,23 @@
     _stack = [NSMutableArray arrayWithCapacity:100];
     [_stack addObject:folder];
     while([_stack count] != 0){
-        [self lookUp:[_stack pop]];
-    }
-    
-}
-
--(NSMutableArray*) getFilesInFolder:(NSString*) folder {
-    NSFileManager *fm = [NSFileManager defaultManager];
-    
-}
-
--(void)getModificationDatesAtPath:(NSString*) folder {
-	_stack = [NSMutableArray arrayWithCapacity:100];
-    [_stack addObject:folder];
-    while([_stack count] != 0){
-        [self lookUp:[_stack pop]];
-    }
-}
-
--(void)lookUp:(NSString*) folder {
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSError *err;
-	NSArray* files = [fm contentsOfDirectoryAtPath:folder error:&err];
-    NSString* mDate;
-    
-	for(NSString *file in files) {
-		NSString *path = [folder stringByAppendingPathComponent:file];
-		BOOL isDir = NO;
-		[fm fileExistsAtPath:path isDirectory:(&isDir)];
-        if(isDir){
-            [_stack push:path];
-        }
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSError *err;
+        NSArray* files = [fm contentsOfDirectoryAtPath:[_stack pop] error:&err];
         
-	}
+        for(NSString *file in files) {
+            NSString *path = [[_stack pop] stringByAppendingPathComponent:file];
+            BOOL isDir = NO;
+            [fm fileExistsAtPath:path isDirectory:(&isDir)];
+            if(isDir){
+                [_stack push:path];
+            }
+            //!!!!
+        }
 
+    }
+    
 }
+
 
 @end
