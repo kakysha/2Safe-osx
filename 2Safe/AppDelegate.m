@@ -10,7 +10,7 @@
 #import "ApiRequest.h"
 #import "FileHandler.h"
 #import "FileTreeWrapper.h"
-#import "NSFile.h"
+#import "FSElement.h"
 #import "Database.h"
 #import "Synchronization.h"
 
@@ -22,12 +22,19 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    //testing FSElement
+    FSElement *e = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
+    NSLog(@"name:%@ hash:%@ mdate:%@", e.name, e.hash, e.mdate);
     //testing db
     Database *db = [Database databaseForAccount:@"kakysha"];
     NSDictionary *d = [db getElementById:@"2"];
     for(id key in d)
         NSLog(@"key=%@ value=%@", key, [d objectForKey:key]);
     [db updateElementWithId:@"2" withValues:[NSDictionary dictionaryWithObjectsAndKeys:@"file1",@"name",@"a345f3d",@"hash", nil]];
+    
+    //test sync
+    Synchronization *sync = [[Synchronization alloc] init];
+    [sync getModificationDatesAtPath:@"/Users/Drunk/Downloads/press340_FN"];
     
     /*//example of tree wrapper
     [FileTreeWrapper clearTree];
@@ -63,7 +70,7 @@
             }
             sleep(2);
             //example of sending multipart/form-data request for file uploading
-            ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : @"1134748033540", @"file" : [[NSFile alloc] initWithFileAtPath:@"file_orig.png"], @"overwrite":@"1"} withToken:YES];
+            ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : @"1134748033540", @"file" : [[FSElement alloc] initWithPath:@"file_orig.png"], @"overwrite":@"1"} withToken:YES];
             [r3 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                 if (!e) {
                     for (id key in response) {
@@ -91,9 +98,6 @@
     FileHandler *mainFileHandler = [[FileHandler alloc] init];
     [mainFileHandler startTracking];
     */
-    
-    Synchronization *sync = [[Synchronization alloc] init];
-    [sync getModificationDatesAtPath:@"/Users/dan/Downloads"];
 }
 
 @end

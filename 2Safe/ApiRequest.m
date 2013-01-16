@@ -9,7 +9,7 @@
 #import "ApiRequest.h"
 #import "LoginController.h"
 #import "PKMultipartInputStream.h"
-#import "NSFile.h"
+#import "FSElement.h"
 
 typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
 
@@ -149,7 +149,7 @@ NSString *_token;
         [uploadFileStream addPartWithName:name string:value];
     if ([value isKindOfClass:[NSData class]])
         [uploadFileStream addPartWithName:name data:value];
-    if ([value isKindOfClass:[NSFile class]])
+    if ([value isKindOfClass:[FSElement class]])
         [uploadFileStream addPartWithName:name path:[value filePath]];
 }
 
