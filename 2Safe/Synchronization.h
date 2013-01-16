@@ -10,6 +10,6 @@
 
 @interface Synchronization : NSObject
 
--(void)getModificationDatesAtPath:(NSString*) folder;
+-(void)getClientQueues:(NSString*) folder;
 
 @end
