@@ -14,6 +14,21 @@
     NSMutableArray *_stack;
 }
 
+-(NSMutableDictionary*) getClientQueue:(NSString*) folder {
+    NSMutableDictionary *clientQueue = [NSMutableDictionary dictionaryWithCapacity:20];
+    _stack = [NSMutableArray arrayWithCapacity:100];
+    [_stack addObject:folder];
+    while([_stack count] != 0){
+        [self lookUp:[_stack pop]];
+    }
+    
+}
+
+-(NSMutableArray*) getFilesInFolder:(NSString*) folder {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    
+}
+
 -(void)getModificationDatesAtPath:(NSString*) folder {
 	_stack = [NSMutableArray arrayWithCapacity:100];
     [_stack addObject:folder];
@@ -24,7 +39,6 @@
 
 -(void)lookUp:(NSString*) folder {
     NSFileManager *fm = [NSFileManager defaultManager];
-    FileHandler *fh = [[FileHandler alloc] init];
     NSError *err;
 	NSArray* files = [fm contentsOfDirectoryAtPath:folder error:&err];
     NSString* mDate;
@@ -33,14 +47,10 @@
 		NSString *path = [folder stringByAppendingPathComponent:file];
 		BOOL isDir = NO;
 		[fm fileExistsAtPath:path isDirectory:(&isDir)];
-		//if(isDir) {
-		//	[directoryList addObject:file];
-		//}
         if(isDir){
             [_stack push:path];
         }
-        mDate = [fh getModificationDate:path];
-        NSLog(@"Modification Date: %@ of %@", mDate, path);
+        
 	}
 
 }
