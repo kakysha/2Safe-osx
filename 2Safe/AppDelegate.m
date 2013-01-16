@@ -23,15 +23,16 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     //testing FSElement
-    FSElement *e = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
-    NSLog(@"name:%@ hash:%@ mdate:%@", e.name, e.hash, e.mdate);
+    FSElement *e1 = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
+    NSLog(@"name:%@ hash:%@ mdate:%@", e1.name, e1.hash, e1.mdate);
+    e1.id = @"2";
+    e1.pid = @"1";
     
     //testing db
     Database *db = [Database databaseForAccount:@"kakysha"];
-    NSDictionary *d = [db getElementById:@"2"];
-    for(id key in d)
-        NSLog(@"key=%@ value=%@", key, [d objectForKey:key]);
-    [db updateElementWithId:@"2" withValues:[NSDictionary dictionaryWithObjectsAndKeys:@"file1",@"name",@"a345f3d",@"hash", nil]];
+    FSElement *e2 = [db getElementById:@"2"];
+    NSLog(@"id:%@ name:%@ hash:%@ mdate:%@ pid:%@", e2.id, e2.name, e2.hash, e2.mdate, e2.pid);
+    [db updateElementWithId:@"2" withValues:e1];
     
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];

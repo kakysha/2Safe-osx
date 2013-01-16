@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FMDatabase.h"
 #import "FMDatabaseQueue.h"
+#import "FSElement.h"
 
 @interface Database : NSObject
 
@@ -16,8 +17,8 @@
 - (id)initForAccount:(NSString *)acc;
 
 - (BOOL)insertElement:(NSDictionary *)el;
-- (NSDictionary *)getElementById:(NSString *)idx;
+- (FSElement *)getElementById:(NSString *)idx;
 - (BOOL)deleteElementById:(NSString *)idx;
-- (BOOL)updateElementWithId:(NSString *)idx withValues:(NSDictionary *)val;
+- (BOOL)updateElementWithId:(NSString *)idx withValues:(FSElement *)val;
 
 @end

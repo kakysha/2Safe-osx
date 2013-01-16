@@ -56,24 +56,39 @@
     } else return nil;
 }
 
-- (BOOL)insertElement:(NSDictionary *)el {
++ (FSElement *) elementFromDict:(NSDictionary *)d {
+    FSElement *e = [[FSElement alloc] init];
+    e.id = [d objectForKey:@"id"];
+    e.name = [d objectForKey:@"name"];
+    e.hash = [d objectForKey:@"hash"];
+    e.mdate = [d objectForKey:@"mdate"];
+    e.pid = [d objectForKey:@"pid"];
+    return e;
+}
++ (NSDictionary *) dictionaryFromEl:(FSElement *)el {
+    return [NSDictionary dictionaryWithObjectsAndKeys:el.id,@"id",el.name,@"name",el.hash,@"hash",el.mdate,@"mdate",el.pid,@"pid", nil];
+}
+
+- (BOOL)insertElement:(FSElement *)el {
     __block BOOL res = NO;
     [_dbQueue inDatabase:^(FMDatabase *db) {
-        res = [db executeUpdate:@"INSERT into elements(id,name,hash,mdate,pid) VALUES (:id, :name, :hash, :mdate, :pid)" withParameterDictionary:el];
+        res = [db executeUpdate:@"INSERT into elements(id,name,hash,mdate,pid) VALUES (:id, :name, :hash, :mdate, :pid)" withParameterDictionary:[Database dictionaryFromEl:el]];
         if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
     }];
     return res;
 }
 
-- (NSDictionary *)getElementById:(NSString *)idx {
-    __block NSDictionary *d;
+- (FSElement *)getElementById:(NSString *)idx {
+    __block FSElement *e;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE id=?", idx];
         if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        NSDictionary *d;
         while ([res next])
             d = [res resultDictionary];
+        e = [Database elementFromDict:d];
     }];
-    return d;
+    return e;
 }
 
 - (BOOL)deleteElementById:(NSString *)idx {
@@ -85,8 +100,9 @@
     return res;
 }
 
-- (BOOL)updateElementWithId:(NSString *)idx withValues:(NSDictionary *)val{
+- (BOOL)updateElementWithId:(NSString *)idx withValues:(FSElement *)el{
     __block BOOL res = NO;
+    NSDictionary *val = [Database dictionaryFromEl:el];
     NSMutableString *sql = [NSMutableString stringWithString:@"UPDATE elements SET name = name"];
     for (id key in val) {
         [sql appendFormat:@",%@ = :%@", key, key];
