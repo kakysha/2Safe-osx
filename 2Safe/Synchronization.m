@@ -18,7 +18,7 @@
     NSMutableArray *clientDeletionsQueue;
 }
 
--(NSMutableDictionary*) getClientQueue:(NSString*) folder {
+-(void) getClientQueues:(NSString*) folder {
     clientInsertionsQueue = [NSMutableArray arrayWithCapacity:20];
     clientDeletionsQueue = [NSMutableArray arrayWithCapacity:20];
     Database *db = [Database databaseForAccount:@"kakysha"];
@@ -28,7 +28,7 @@
     [_stack addObject:firstElem];
     while([_stack count] != 0){
         FSElement *stackElem = [_stack pop];
-        NSArray* bdfiles = [db childElementsOfId:[stackElem id]];
+        NSMutableArray* bdfiles = [NSMutableArray arrayWithArray:[db childElementsOfId:[stackElem id]]];
         NSFileManager *fm = [NSFileManager defaultManager];
         NSError *err;
         NSArray* files = [fm contentsOfDirectoryAtPath:stackElem.filePath error:&err];
@@ -39,17 +39,27 @@
             BOOL isDir = NO;
             [fm fileExistsAtPath:path isDirectory:(&isDir)];
             FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
-            if(isDir){
-                [_stack push:elementToAdd];
-            }
+            
             NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj name] == elementToAdd.name){return YES;}else{return NO;}}];
             if (foundIndex == NSNotFound) {
                 [clientInsertionsQueue addObject:elementToAdd];
             }
             else {
-                if (elementToAdd.mdate == bdfiles[foundIndex])
+                if(isDir){
+                    [_stack push:bdfiles[foundIndex]];
+                }
+                if (elementToAdd.mdate != [bdfiles[foundIndex] mdate]){
+                    [clientInsertionsQueue addObject:elementToAdd];
+                }
+                [bdfiles removeObjectAtIndex:foundIndex];
             }
-
+        }
+        
+        if (bdfiles.count != 0) {
+            for(FSElement *fse in bdfiles){
+                [clientDeletionsQueue addObject:fse];
+            }
+        }
     }
     
 }
