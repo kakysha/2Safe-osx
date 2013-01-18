@@ -44,15 +44,15 @@
     [sync getClientQueues:@"/Users/Drunk/Downloads/2safe/"];
     
     //example of file downloading - INCORRECT!
-    ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"1138179033539"} withToken:YES];
+    /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
     [r1 performDataRequestWithBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
         if (!e) {
-            [response writeToFile:@"file_data.png" atomically:YES];
-            NSLog(@"File saved to: file_data.png");
+            [response writeToFile:@"file_data.txt" atomically:YES];
+            NSLog(@"File saved to: file_data.txt");
         } else {
             NSLog(@"Error code:%ld description:%@", [e code],[e localizedDescription]);
         }
-        sleep(2);
+        //sleep(2);
         //example of sending JSON request with JSON response
         ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_disk_quota" params:@{} withToken:YES];
         [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
@@ -63,7 +63,7 @@
             } else {
                 NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }
-            sleep(2);
+            //sleep(2);
             //example of sending multipart/form-data request for file uploading
             ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : @"1134748033540", @"file" : [[FSElement alloc] initWithPath:@"file_orig.png"], @"overwrite":@"1"} withToken:YES];
             [r3 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
@@ -74,19 +74,20 @@
                 } else {
                     NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
                 }
-                sleep(2);
+                //sleep(2);
                 //example of downloading files with NSOutputStream - OK!
-                ApiRequest *r4 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"1138179033539"} withToken:YES];
-                [r4 performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:@"file_stream.png" append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
+                ApiRequest *r4 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
+                [r4 performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:@"file_stream.txt" append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
                     if (!e) {
-                        NSLog(@"File saved to: file_stream.png");
+                        NSLog(@"File saved to: file_stream.txt");
                     } else {
                         NSLog(@"Error code:%ld description:%@", [e code],[e localizedDescription]);
                     }
                 }];
             }];
         }];
-    }];
+    }];*/
+     
 }
 
 @end

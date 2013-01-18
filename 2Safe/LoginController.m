@@ -60,7 +60,7 @@ NSError *_error;
 + (NSString *)token{
     //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token for debugging
     if (_token != nil) {
-        NSLog(@"Getting token from Static Variable");
+        //NSLog(@"Getting token from Static Variable");
         return _token;
     }
 
@@ -91,7 +91,7 @@ NSError *_error;
         if (!e) {
             _token = [response valueForKey:@"token"];
             [[NSUserDefaults standardUserDefaults] setObject:_token forKey:@"token"];
-            
+            [[NSUserDefaults standardUserDefaults] setObject:[credentials valueForKey:@"login"] forKey:@"account"];
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
 
             [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];

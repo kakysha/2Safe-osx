@@ -24,6 +24,7 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
     NSMutableData *POSTBody;
     NSUInteger contentLength;
     PKMultipartInputStream *uploadFileStream;
+    BOOL sync;
 }
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
@@ -119,11 +120,26 @@ NSString *_token;
         [theRequest addValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [theRequest setHTTPBody:POSTBody];
     if (isMultipart) [theRequest setHTTPBodyStream:uploadFileStream];
-    NSURLConnection *theConnection=[[NSURLConnection alloc] initWithRequest:theRequest delegate:self];
-    if (!theConnection){
-        self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+    NSURLConnection *theConnection;
+    if (!sync) {
+        theConnection =[[NSURLConnection alloc] initWithRequest:theRequest delegate:self startImmediately:NO];
+        [theConnection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+        [theConnection start];
+        if (!theConnection)
+            self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+        else
+            NSLog(@"Start: %@ (%@)", self.action, [[self.requestparams valueForKey:@"file"] name]);
     } else {
-        NSLog(@"Request \"%@\" started", self.action);
+        NSURLResponse *resp;
+        NSError *er;
+        NSLog(@"Synchronous request \"%@\" started", self.action);
+        NSData *syncData = [NSURLConnection sendSynchronousRequest:theRequest returningResponse:&resp error:&er];
+        [self connection:nil didReceiveResponse:(NSHTTPURLResponse *)resp];
+        if (er) [self connection:nil didFailWithError:er];
+        else {
+            [self connection:nil didReceiveData:syncData];
+            [self connectionDidFinishLoading:nil];
+        }
     }
 }
 
@@ -154,7 +170,8 @@ NSString *_token;
 }
 
 // public methods
-- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
+- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block synchronous:(BOOL)synced{
+    sync = synced;
     requestType = TextRequest;
     [self checkRequestParams];
     if (self.error) {
@@ -165,12 +182,10 @@ NSString *_token;
     if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
-    if (self.error) {
-        block(nil, self.error);
-    }
 }
 
-- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse*, NSError *))block {
+- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse*, NSError *))block synchronous:(BOOL)synced {
+    sync = synced;
     requestType = DataRequest;
     [self checkRequestParams];
     if (self.error) {
@@ -181,12 +196,10 @@ NSString *_token;
     if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
-    if (self.error) {
-        block(nil, nil, self.error);
-    }
 }
 
-- (void)performStreamRequest:(NSOutputStream *)stream withBlock:(void (^)(NSData *, NSHTTPURLResponse *, NSError *))block {
+- (void)performStreamRequest:(NSOutputStream *)stream withBlock:(void (^)(NSData *, NSHTTPURLResponse *, NSError *))block synchronous:(BOOL)synced {
+    sync = synced;
     outputStream = stream;
     requestType = StreamRequest;
     [self checkRequestParams];
@@ -198,9 +211,15 @@ NSString *_token;
     if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
-    if (self.error) {
-        block(nil, nil, self.error);
-    }
+}
+- (void)performRequestWithBlock:(void (^)(NSDictionary *, NSError *))block {
+    [self performRequestWithBlock:block synchronous:NO];
+}
+- (void)performDataRequestWithBlock:(void (^)(NSData *, NSHTTPURLResponse *, NSError *))block {
+    [self performDataRequestWithBlock:block synchronous:NO];
+}
+- (void)performStreamRequest:(NSOutputStream *)stream withBlock:(void (^)(NSData *, NSHTTPURLResponse *, NSError *))block {
+    [self performStreamRequest:stream withBlock:block synchronous:NO];
 }
 
 // events handling section

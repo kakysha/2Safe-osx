@@ -14,71 +14,110 @@
 #import "ApiRequest.h"
 
 @implementation Synchronization{
-    NSMutableArray *_stack;
-    NSMutableArray *clientInsertionsQueue;
-    NSMutableArray *clientDeletionsQueue;
-    NSFileManager *fm;
+    NSMutableArray *_folderStack;
+    NSMutableArray *_uploadFolderStack;
+    NSFileManager *_fm;
+    Database *_db;
+    NSMutableArray *_clientInsertionsQueue;
+    NSMutableArray *_clientDeletionsQueue;
 }
 
 - (id) init {
     if (self = [super init]) {
-        fm = [NSFileManager defaultManager];
+        _fm = [NSFileManager defaultManager];
+        _db = [Database databaseForAccount:@"kakysha"];
+        _folderStack = [NSMutableArray arrayWithCapacity:100];
+        _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
+        _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         return self;
     }
     return nil;
 }
 
 -(void) getClientQueues:(NSString*) folder {
-    clientInsertionsQueue = [NSMutableArray arrayWithCapacity:20];
-    clientDeletionsQueue = [NSMutableArray arrayWithCapacity:20];
-    Database *db = [Database databaseForAccount:@"kakysha"];
-    _stack = [NSMutableArray arrayWithCapacity:100];
-    FSElement *firstElem = [[FSElement alloc] initWithPath:folder];
-    firstElem.id = @"1108986033540";
-    [_stack addObject:firstElem];
-    while([_stack count] != 0){
-        FSElement *stackElem = [_stack pop];
-        NSMutableArray* bdfiles = [NSMutableArray arrayWithArray:[db childElementsOfId:[stackElem id]]];
-        NSError *err;
-        NSArray* files = [fm contentsOfDirectoryAtPath:stackElem.filePath error:&err];
+    FSElement *root = [[FSElement alloc] initWithPath:folder];
+    root.id = @"1108986033540";
+    [_folderStack push:root];
+    while([_folderStack count] != 0){
+        FSElement *stackElem = [_folderStack pop];
+        NSMutableArray* bdfiles = [NSMutableArray arrayWithArray:[_db childElementsOfId:[stackElem id]]];
+        NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
         for(NSString *file in files) {
             NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
-            BOOL isDir = NO;
-            [fm fileExistsAtPath:path isDirectory:&isDir];
             FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
+            BOOL isDir = NO;
+            [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
             NSUInteger foundIndex = [bdfiles indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:elementToAdd.name]){*stop = YES;return YES;} return NO;}];
             if (foundIndex == NSNotFound) {
-                [clientInsertionsQueue addObject:elementToAdd];
+                elementToAdd.pid = stackElem.id;
+                [_clientInsertionsQueue addObject:elementToAdd];
             }
             else {
-                FSElement *dbDir = bdfiles[foundIndex];
+                FSElement *dbElem = bdfiles[foundIndex];
                 if(isDir){
-                    dbDir.filePath = elementToAdd.filePath;
-                    [_stack push:dbDir];
+                    dbElem.filePath = elementToAdd.filePath;
+                    [_folderStack push:dbElem];
                 } else
-                if (![elementToAdd.mdate isEqualToString:dbDir.mdate]){
-                    [clientInsertionsQueue addObject:elementToAdd];
+                if (![elementToAdd.mdate isEqualToString:dbElem.mdate]){
+                    [_clientInsertionsQueue addObject:elementToAdd];
                 }
                 [bdfiles removeObjectAtIndex:foundIndex];
             }
         }
-        
-        if (bdfiles.count != 0) {
-            for(FSElement *fse in bdfiles){
-                [clientDeletionsQueue addObject:fse];
-            }
-        }
+        if (bdfiles.count != 0)
+            for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    for (int i = 0; i < clientInsertionsQueue.count; i++) NSLog(@"%@", [clientInsertionsQueue[i] filePath]);
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performInsertionQueue]; });
 }
 
--(void) performQueues {
-    
-    //UPLOADING FILES!
-    for(FSElement *fse in clientInsertionsQueue) {
+-(void) performInsertionQueue{
+    for(FSElement *fse in _clientInsertionsQueue) {
+        if ([fse.hash isEqualToString:@"NULL"]) { // directory, recursively hop in it and it's contents, concurrently in other thread
+            
+            [_uploadFolderStack push:fse];
+            while ([_uploadFolderStack count] > 0) {
+                __block FSElement *curDirEl = [_uploadFolderStack pop];
+                //firstly, create a dir on the server to get it's id [respectively block thread to wait for execution of request]
+                ApiRequest *folderUploadRequest = [[ApiRequest alloc] initWithAction:@"make_dir" params:@{@"dir_id":curDirEl.pid, @"dir_name":curDirEl.name} withToken:YES];
+                [folderUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                    if (!e) {
+                        curDirEl.id = [response valueForKey:@"dir_id"];
+                        [_db insertElement:curDirEl];
+                        NSArray* files = [_fm contentsOfDirectoryAtPath:curDirEl.filePath error:nil];
+                        for(NSString *file in files) {
+                            NSString *path = [curDirEl.filePath stringByAppendingPathComponent:file];
+                            FSElement *childEl = [[FSElement alloc] initWithPath:path];
+                            childEl.pid = curDirEl.id;
+                            BOOL isDir = NO;
+                            [_fm fileExistsAtPath:childEl.filePath isDirectory:&isDir];
+                            if (isDir) { //directory - just push it into stack for upload
+                                [_uploadFolderStack push:childEl];
+                            } else { //file - upload ad store it in db
+                                ApiRequest *fileUploadRequest2 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : childEl.pid , @"file" : childEl, @"overwrite":@"1"} withToken:YES];
+                                [fileUploadRequest2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+                                    if (!e) {
+                                        childEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
+                                        [_db insertElement:childEl];
+                                    } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+                                }];
+                            }
+                        }
+                    } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+                } synchronous:YES];
+            }
+        } else {
+            ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
+            [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+                if (!e) {
+                    fse.id = [[response valueForKey:@"file"] valueForKey:@"id"];
+                    [_db insertElement:fse];
+                } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+            }];
+        }
         
         //TODO: firstly, create the folders, after than - upload files!
-        ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
+        /*ApiRequest *r3 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
         [r3 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
             if (!e) {
                 for (id key in response) {
@@ -87,14 +126,13 @@
             } else {
                 NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }
-            sleep(2);
          }
-        ];
+        ];*/
         
     }
     
-    //DELETING FILES!
-    for(FSElement *fse in clientDeletionsQueue) {
+    /*//DELETING FILES!
+    for(FSElement *fse in _clientDeletionsQueue) {
         ApiRequest *r4 = [[ApiRequest alloc] initWithAction:@"remove_file" params:@{@"id" : fse.id, @"remove_now":@"1"} withToken:YES];
         [r4 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
             if (!e) {
@@ -107,7 +145,7 @@
             sleep(2);
         }
          ];
-    }
+    }*/
 }
 
 

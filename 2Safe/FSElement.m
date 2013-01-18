@@ -23,7 +23,7 @@
     if (_hash) return _hash;
     BOOL isDir = NO;
     [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir];
-    if (isDir) return nil;
+    if (isDir) return @"NULL";
     _hash = [FSElement getMD5HashForFile:filePath];
     return _hash;
 }
