@@ -53,7 +53,7 @@
                 }
                     if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
                        [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
-                        FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"]];
+                        FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
                         if (parentElement) {
                             elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"]].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
                         } else {
@@ -71,7 +71,7 @@
                     }
                     else if (([[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ||
                              [[dict objectForKey:@"event"] isEqualTo:@"dir_moved"])){
-                            FSElement *elementToAdd = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"]];
+                            FSElement *elementToAdd = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"] withFullFilePath:YES];
                             if (!elementToAdd) {
                                 for(FSElement *elem in _serverInsertionsQueue){
                                     if ([elem.name isEqualTo:[dict objectForKey:@"old_name"]] &&
