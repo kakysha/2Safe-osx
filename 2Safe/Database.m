@@ -58,11 +58,11 @@
 
 + (FSElement *) elementFromDict:(NSDictionary *)d {
     FSElement *e = [[FSElement alloc] init];
-    e.id = [d objectForKey:@"id"];
+    e.id = [NSString stringWithFormat:@"%@",[d objectForKey:@"id"]];
     e.name = [d objectForKey:@"name"];
     e.hash = [d objectForKey:@"hash"];
-    e.mdate = [d objectForKey:@"mdate"];
-    e.pid = [d objectForKey:@"pid"];
+    e.mdate = [NSString stringWithFormat:@"%@",[d objectForKey:@"mdate"]];
+    e.pid = [NSString stringWithFormat:@"%@",[d objectForKey:@"pid"]];
     return e;
 }
 + (NSDictionary *) dictionaryFromEl:(FSElement *)el {
@@ -78,7 +78,7 @@
     return res;
 }
 
-- (FSElement *)getElementById:(NSString *)idx {
+- (FSElement *)getElementById:(NSString *)idx withFullFilePath:(BOOL)ffp{
     __block FSElement *e;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE id=?", idx];
@@ -87,12 +87,30 @@
         while ([res next])
             d = [res resultDictionary];
         if (!d) e = nil;
-        else e = [Database elementFromDict:d];
+        else {
+            e = [Database elementFromDict:d];
+        }
     }];
+    if (e && ffp) {
+        e.filePath = [self getFullFilePathForEl:e];
+    }
     return e;
 }
 
--(FSElement*)getElementByName:(NSString *)namex withPID:(NSString*)pidx {
+- (FSElement *) getElementById:(NSString *)idx {
+    return [self getElementById:idx withFullFilePath:NO];
+}
+
+- (NSString *) getFullFilePathForEl:(FSElement *)e {
+    FSElement *p = e;
+    while ([p.pid isNotEqualTo:@"<null>"]) {
+        e.filePath = [p.name stringByAppendingPathComponent:e.filePath];
+        p = [self getElementById:p.pid];
+    }
+    return e.filePath;
+}
+
+-(FSElement *) getElementByName:(NSString *)namex withPID:(NSString*)pidx withFullFilePath:(BOOL)ffp{
     __block FSElement *e;
     [_dbQueue inDatabase:^(FMDatabase *db) {
         FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE name=? AND pid=?", namex, pidx];
@@ -103,7 +121,13 @@
         if (!d) e = nil;
         else e = [Database elementFromDict:d];
     }];
+    if (e && ffp) {
+        e.filePath = [self getFullFilePathForEl:e];
+    }
     return e;
+}
+-(FSElement *) getElementByName:(NSString *)namex withPID:(NSString*)pidx {
+    return [self getElementByName:namex withPID:pidx withFullFilePath:NO];
 }
 
 - (BOOL)deleteElementById:(NSString *)idx {
