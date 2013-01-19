@@ -86,7 +86,8 @@
         NSDictionary *d;
         while ([res next])
             d = [res resultDictionary];
-        e = [Database elementFromDict:d];
+        if (!d) e = nil;
+        else e = [Database elementFromDict:d];
     }];
     return e;
 }
