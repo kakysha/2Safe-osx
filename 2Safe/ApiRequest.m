@@ -298,6 +298,7 @@ NSString *_token;
         return;
     }
     //ok - return the result
+    NSLog(@"Finish: %@ (%@)", self.action, [[self.requestparams valueForKey:@"file"] name]);
     switch (requestType) {
         case TextRequest: {
                 responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key

@@ -64,7 +64,7 @@ NSError *_error;
         return _token;
     }
 
-    if ((_token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"])) NSLog(@"Getting token from UserDefaults");
+    if ((_token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"])) NSLog(@"Getting token from UserDefaults [%@]", _token);
     return _token; //beware: we can return nil token here, the receiver must call auth process by itself!
 }
 
