@@ -18,57 +18,68 @@
     NSMutableArray *_uploadFolderStack;
     NSFileManager *_fm;
     Database *_db;
-    NSMutableArray *_clientInsertionsQueue;
-    NSMutableArray *_clientDeletionsQueue;
     __block NSMutableArray *_serverInsertionsQueue;
     __block NSMutableArray *_serverDeletionsQueue;
+    NSMutableArray *_clientInsertionsQueue;
+    NSMutableArray *_clientDeletionsQueue;
+    
 }
 
 - (id) init {
     if (self = [super init]) {
         _fm = [NSFileManager defaultManager];
         _db = [Database databaseForAccount:@"kakysha"];
+        FSElement *el = [_db getElementById:@"170226033559" withFullFilePath:YES];
+        NSLog(@"%@",el.filePath);
         _folderStack = [NSMutableArray arrayWithCapacity:100];
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
-        _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
-        _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+        
         return self;
     }
     return nil;
 }
 
 -(void) getServerQueues:(NSString*) folder {
+    //__block NSMutableArray *_serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+    //__block NSMutableArray *_serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
     ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358586559991786"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath = @"";
-            /*for(id key in response){
+            for(id key in response){
                 NSLog(@"%@ dsfsd %@", key, [response objectForKey:key]);
-            }*/
+            }
             for (NSDictionary *dict in [response objectForKey:@"events"]) {
-                for(id key in dict){
+                /*for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
-                }
+                }*/
                     if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
                        [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
                         FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
                         if (parentElement) {
-                            elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"]].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
+                            elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
+                            elementPath = [folder stringByAppendingPathComponent:elementPath];
                         } else {
                             for(FSElement *elem in _serverInsertionsQueue){
                                 if ([elem.id isEqualTo:[dict objectForKey:@"parent_id"]]){
                                     elementPath = [elem.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
+                                    elementPath = [folder stringByAppendingPathComponent:elementPath];
                                 }
                             }
                         }
-                        FSElement *elementToAdd = [[FSElement alloc] initWithPath:elementPath];
+                        //FSElement *elementToAdd = [[FSElement alloc] initWithPath:elementPath];
+                        FSElement *elementToAdd = [[FSElement alloc] init];
+                        elementToAdd.filePath = elementPath;
+                        elementToAdd.name = [dict objectForKey:@"name"];
                         elementToAdd.id = [dict objectForKey:@"id"];
                         elementToAdd.pid = [dict objectForKey:@"parent_id"];
                         if ([[dict objectForKey:@"event"] isEqualTo:@"dir_created"]) elementToAdd.hash = NULL;
                         [_serverInsertionsQueue addObject:elementToAdd];
-                    }
+                    }	
                     else if (([[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ||
                              [[dict objectForKey:@"event"] isEqualTo:@"dir_moved"])){
                             FSElement *elementToAdd = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"] withFullFilePath:YES];
@@ -77,18 +88,21 @@
                                     if ([elem.name isEqualTo:[dict objectForKey:@"old_name"]] &&
                                         [elem.pid isEqualTo:[dict objectForKey:@"old_parent_id"]]){
                                         if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
-                                            elementToAdd = [[FSElement alloc] initWithPath:elem.filePath];
+                                            elementToAdd = [[FSElement alloc] init];
+                                            elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];
+                                            elementToAdd.name = [dict objectForKey:@"new_name"];
                                             elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
                                             elementToAdd.id = elem.id;
                                             elementToAdd.hash = elem.hash;
                                             elementToAdd.mdate = elem.mdate;
                                             [_serverInsertionsQueue addObject:elementToAdd];
                                         }
-                                        [_serverInsertionsQueue removeObject:elem];
+                                        [_serverInsertionsQueue removeObject:elem]; break;
                                     }
                                 }
                             }
                             else {
+                                elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];
                                 [_serverDeletionsQueue addObject:elementToAdd];
                                 if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
                                     elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
@@ -100,6 +114,12 @@
             }
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
+    for (FSElement* elem in _serverInsertionsQueue){
+        NSLog(@"%@",elem.name);
+    }
+    for (FSElement* elem in _serverDeletionsQueue){
+        NSLog(@"%@",elem.name);
+    }
 }
 
 -(void) getClientQueues:(NSString*) folder {

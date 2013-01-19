@@ -31,7 +31,7 @@ static void callback(ConstFSEventStreamRef streamRef,void *clientCallBackInfo,si
         else if(eventFlags[i] == kFSEventStreamEventFlagItemRemoved) trigEvent = FILE_IS_DELETED;
         else if(eventFlags[i] == kFSEventStreamEventFlagItemRenamed) trigEvent = FILE_IS_RENAMED;
         //delegate file events to FileUploader
-        [FileUploader file: fileName atPath:pathName triggeredEvent:trigEvent];
+        //[FileUploader file: fileName atPath:pathName triggeredEvent:trigEvent];
     }
 }
 
