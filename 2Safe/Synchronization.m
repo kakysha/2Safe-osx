@@ -20,6 +20,8 @@
     Database *_db;
     NSMutableArray *_clientInsertionsQueue;
     NSMutableArray *_clientDeletionsQueue;
+    __block NSMutableArray *_serverInsertionsQueue;
+    __block NSMutableArray *_serverDeletionsQueue;
 }
 
 - (id) init {
@@ -30,9 +32,42 @@
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         return self;
     }
     return nil;
+}
+
+-(void) getServerQueues:(NSString*) folder {
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358514020446294"} withToken:YES];
+    [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        if (!e) {
+            NSString *elementPath;
+            NSArray *reversedEvents = [[[response objectForKey:@"events"] reverseObjectEnumerator] allObjects];
+            /*for (id key in response){
+                NSLog(@"%@ = %@", key, [response objectForKey:key]);
+            }*/
+            for (NSDictionary *dict in reversedEvents) {
+                /*for(id key in dict){
+                    NSLog(@"%@ = %@", key, [dict objectForKey:key]);
+                }*/
+                    if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
+                       [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
+                        FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"]];
+                        if (parentElement) {
+                            elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"]].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
+                        } else {
+                            //parentElement = [_serverInsertionsQueue]
+                        }
+                        FSElement *elementToAdd = [[FSElement alloc] initWithPath:elementPath];
+                        elementToAdd.id = [dict objectForKey:@"id"];
+                        elementToAdd.pid = [dict objectForKey:@"parent_id"];
+                        [_serverInsertionsQueue addObject:elementToAdd];
+                    }
+            }
+        } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+    }];
 }
 
 -(void) getClientQueues:(NSString*) folder {

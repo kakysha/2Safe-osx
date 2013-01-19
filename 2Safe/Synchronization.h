@@ -10,6 +10,7 @@
 
 @interface Synchronization : NSObject
 
+-(void)getServerQueues:(NSString *) folder;
 -(void)getClientQueues:(NSString *) folder;
 
 @end

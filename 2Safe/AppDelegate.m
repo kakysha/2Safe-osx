@@ -41,7 +41,8 @@
     
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];
-    [sync getClientQueues:@"/Users/Drunk/Downloads/2safe/"];
+    //[sync getClientQueues:@"/Users/Drunk/Downloads/2safe/"];
+    [sync getServerQueues:@"/Users/dan/Downloads/2safe/"];
     
     //example of file downloading - INCORRECT!
     /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
