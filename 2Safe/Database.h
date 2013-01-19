@@ -18,6 +18,7 @@
 
 - (BOOL)insertElement:(FSElement *)el;
 - (FSElement *)getElementById:(NSString *)idx;
+- (FSElement*)getElementByName:(NSString *)namex withPID:(NSString*)pidx;
 - (BOOL)deleteElementById:(NSString *)idx;
 - (BOOL)updateElementWithId:(NSString *)idx withValues:(FSElement *)val;
 - (NSArray *)childElementsOfId:(NSString *)idx;

@@ -40,30 +40,62 @@
 }
 
 -(void) getServerQueues:(NSString*) folder {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358514020446294"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358586559991786"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
-            NSString *elementPath;
-            NSArray *reversedEvents = [[[response objectForKey:@"events"] reverseObjectEnumerator] allObjects];
-            /*for (id key in response){
-                NSLog(@"%@ = %@", key, [response objectForKey:key]);
+            NSString *elementPath = @"";
+            /*for(id key in response){
+                NSLog(@"%@ dsfsd %@", key, [response objectForKey:key]);
             }*/
-            for (NSDictionary *dict in reversedEvents) {
-                /*for(id key in dict){
+            for (NSDictionary *dict in [response objectForKey:@"events"]) {
+                for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
-                }*/
+                }
                     if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
                        [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
                         FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"]];
                         if (parentElement) {
                             elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"]].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
                         } else {
-                            //parentElement = [_serverInsertionsQueue]
+                            for(FSElement *elem in _serverInsertionsQueue){
+                                if ([elem.id isEqualTo:[dict objectForKey:@"parent_id"]]){
+                                    elementPath = [elem.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
+                                }
+                            }
                         }
                         FSElement *elementToAdd = [[FSElement alloc] initWithPath:elementPath];
                         elementToAdd.id = [dict objectForKey:@"id"];
                         elementToAdd.pid = [dict objectForKey:@"parent_id"];
+                        if ([[dict objectForKey:@"event"] isEqualTo:@"dir_created"]) elementToAdd.hash = NULL;
                         [_serverInsertionsQueue addObject:elementToAdd];
+                    }
+                    else if (([[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ||
+                             [[dict objectForKey:@"event"] isEqualTo:@"dir_moved"])){
+                            FSElement *elementToAdd = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"]];
+                            if (!elementToAdd) {
+                                for(FSElement *elem in _serverInsertionsQueue){
+                                    if ([elem.name isEqualTo:[dict objectForKey:@"old_name"]] &&
+                                        [elem.pid isEqualTo:[dict objectForKey:@"old_parent_id"]]){
+                                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
+                                            elementToAdd = [[FSElement alloc] initWithPath:elem.filePath];
+                                            elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
+                                            elementToAdd.id = elem.id;
+                                            elementToAdd.hash = elem.hash;
+                                            elementToAdd.mdate = elem.mdate;
+                                            [_serverInsertionsQueue addObject:elementToAdd];
+                                        }
+                                        [_serverInsertionsQueue removeObject:elem];
+                                    }
+                                }
+                            }
+                            else {
+                                [_serverDeletionsQueue addObject:elementToAdd];
+                                if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
+                                    elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
+                                    elementToAdd.name = [dict objectForKey:@"new_name"];
+                                    [_serverInsertionsQueue addObject:elementToAdd];
+                                }
+                            }
                     }
             }
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);

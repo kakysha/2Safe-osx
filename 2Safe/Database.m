@@ -92,6 +92,20 @@
     return e;
 }
 
+-(FSElement*)getElementByName:(NSString *)namex withPID:(NSString*)pidx {
+    __block FSElement *e;
+    [_dbQueue inDatabase:^(FMDatabase *db) {
+        FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE name=? AND pid=?", namex, pidx];
+        if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        NSDictionary *d;
+        while ([res next])
+            d = [res resultDictionary];
+        if (!d) e = nil;
+        else e = [Database elementFromDict:d];
+    }];
+    return e;
+}
+
 - (BOOL)deleteElementById:(NSString *)idx {
     __block BOOL res = NO;
     [_dbQueue inDatabase:^(FMDatabase *db) {
