@@ -29,15 +29,12 @@
     if (self = [super init]) {
         _fm = [NSFileManager defaultManager];
         _db = [Database databaseForAccount:@"kakysha"];
-        FSElement *el = [_db getElementById:@"170226033559" withFullFilePath:YES];
-        NSLog(@"%@",el.filePath);
         _folderStack = [NSMutableArray arrayWithCapacity:100];
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
         _serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
-        
         return self;
     }
     return nil;
@@ -46,80 +43,72 @@
 -(void) getServerQueues:(NSString*) folder {
     //__block NSMutableArray *_serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
     //__block NSMutableArray *_serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358586559991786"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358613577164777"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
-            NSString *elementPath = @"";
-            for(id key in response){
-                NSLog(@"%@ dsfsd %@", key, [response objectForKey:key]);
-            }
+            NSString *elementPath;
             for (NSDictionary *dict in [response objectForKey:@"events"]) {
-                /*for(id key in dict){
+                /* for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
-                }*/
-                    if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
-                       [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
-                        FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
-                        if (parentElement) {
-                            elementPath = [[_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES].filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
-                            elementPath = [folder stringByAppendingPathComponent:elementPath];
-                        } else {
-                            for(FSElement *elem in _serverInsertionsQueue){
-                                if ([elem.id isEqualTo:[dict objectForKey:@"parent_id"]]){
-                                    elementPath = [elem.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]];
-                                    elementPath = [folder stringByAppendingPathComponent:elementPath];
-                                }
-                            }
+                } */
+                if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
+                   [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
+                    
+                    //trying to locate element's parent
+                    FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
+                    if (parentElement)
+                        //db returns full path only starting from the application folder root
+                        elementPath = [folder stringByAppendingPathComponent:[parentElement.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]]];
+                    else {
+                        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"parent_id"]]){*stop = YES;return YES;} return NO;}];
+                        if (ind) {
+                            //in _serverInsertionsQueue we already have elements with absolute file paths
+                            elementPath = [[[_serverInsertionsQueue objectAtIndex:ind] filePath] stringByAppendingPathComponent:[dict objectForKey:@"name"]];
                         }
-                        //FSElement *elementToAdd = [[FSElement alloc] initWithPath:elementPath];
-                        FSElement *elementToAdd = [[FSElement alloc] init];
-                        elementToAdd.filePath = elementPath;
-                        elementToAdd.name = [dict objectForKey:@"name"];
-                        elementToAdd.id = [dict objectForKey:@"id"];
-                        elementToAdd.pid = [dict objectForKey:@"parent_id"];
-                        if ([[dict objectForKey:@"event"] isEqualTo:@"dir_created"]) elementToAdd.hash = NULL;
-                        [_serverInsertionsQueue addObject:elementToAdd];
-                    }	
-                    else if (([[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ||
-                             [[dict objectForKey:@"event"] isEqualTo:@"dir_moved"])){
-                            FSElement *elementToAdd = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"] withFullFilePath:YES];
-                            if (!elementToAdd) {
-                                for(FSElement *elem in _serverInsertionsQueue){
-                                    if ([elem.name isEqualTo:[dict objectForKey:@"old_name"]] &&
-                                        [elem.pid isEqualTo:[dict objectForKey:@"old_parent_id"]]){
-                                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
-                                            elementToAdd = [[FSElement alloc] init];
-                                            elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];
-                                            elementToAdd.name = [dict objectForKey:@"new_name"];
-                                            elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                                            elementToAdd.id = elem.id;
-                                            elementToAdd.hash = elem.hash;
-                                            elementToAdd.mdate = elem.mdate;
-                                            [_serverInsertionsQueue addObject:elementToAdd];
-                                        }
-                                        [_serverInsertionsQueue removeObject:elem]; break;
-                                    }
-                                }
-                            }
-                            else {
-                                elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];
-                                [_serverDeletionsQueue addObject:elementToAdd];
-                                if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){
-                                    elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                                    elementToAdd.name = [dict objectForKey:@"new_name"];
-                                    [_serverInsertionsQueue addObject:elementToAdd];
-                                }
-                            }
                     }
+                    
+                    FSElement *elementToAdd = [[FSElement alloc] init];
+                    elementToAdd.filePath = elementPath;
+                    elementToAdd.name = [dict objectForKey:@"name"];
+                    elementToAdd.id = [dict objectForKey:@"id"];
+                    elementToAdd.pid = [dict objectForKey:@"parent_id"];
+                    if ([[dict objectForKey:@"event"] isEqualTo:@"dir_created"]) elementToAdd.hash = @"NULL";
+                    [_serverInsertionsQueue addObject:elementToAdd];
+                }	
+                if ([[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ||
+                         [[dict objectForKey:@"event"] isEqualTo:@"dir_moved"]){
+                    FSElement *elementToDel = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"] withFullFilePath:YES];
+                    if (!elementToDel) {
+                        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:[dict objectForKey:@"old_name"]] && [[obj pid] isEqualToString:[dict objectForKey:@"old_parent_id"]]){*stop = YES;return YES;} return NO;}];
+                        FSElement *elem = [_serverInsertionsQueue objectAtIndex:ind];
+                        //move or rename
+                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
+                            FSElement *elementToAdd = [[FSElement alloc] init];
+                            elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];//TODO: INCORRECT! must calculate new filepath depending on new parent
+                            elementToAdd.name = [dict objectForKey:@"new_name"];
+                            elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
+                            elementToAdd.id = elem.id;
+                            elementToAdd.hash = elem.hash;
+                            elementToAdd.mdate = elem.mdate;
+                            [_serverInsertionsQueue addObject:elementToAdd];
+                        }
+                        [_serverInsertionsQueue removeObjectAtIndex:ind];
+                    }
+                    else {
+                        elementToDel.filePath = [folder stringByAppendingPathComponent:elementToDel.filePath];
+                        [_serverDeletionsQueue addObject:elementToDel];
+                        //move -or- rename
+                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
+                            elementToDel.pid = [dict objectForKey:@"new_parent_id"];
+                            //TODO: Calculate new filePath here, before we insert it into insertionsQueue
+                            elementToDel.name = [dict objectForKey:@"new_name"];
+                            [_serverInsertionsQueue addObject:elementToDel];
+                        }
+                    }
+                }
             }
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
-    for (FSElement* elem in _serverInsertionsQueue){
-        NSLog(@"%@",elem.name);
-    }
-    for (FSElement* elem in _serverDeletionsQueue){
-        NSLog(@"%@",elem.name);
-    }
 }
 
 -(void) getClientQueues:(NSString*) folder {
@@ -164,21 +153,28 @@
     for(FSElement *fse in _clientInsertionsQueue) {
         if ([fse.hash isEqualToString:@"NULL"]) { // directory, recursively hop in it and it's contents
             [_uploadFolderStack push:fse];
+            
             while ([_uploadFolderStack count] > 0) {
                 __block FSElement *curDirEl = [_uploadFolderStack pop];
+                
                 //firstly, create a dir on the server to get it's id [respectively block thread to wait for execution of request]
                 ApiRequest *folderUploadRequest = [[ApiRequest alloc] initWithAction:@"make_dir" params:@{@"dir_id":curDirEl.pid, @"dir_name":curDirEl.name} withToken:YES];
                 [folderUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                    
                     if (!e) {
                         curDirEl.id = [response valueForKey:@"dir_id"];
                         [_db insertElement:curDirEl];
+                        
+                        //iterate through files
                         NSArray* files = [_fm contentsOfDirectoryAtPath:curDirEl.filePath error:nil];
                         for(NSString *file in files) {
                             NSString *path = [curDirEl.filePath stringByAppendingPathComponent:file];
                             FSElement *childEl = [[FSElement alloc] initWithPath:path];
                             childEl.pid = curDirEl.id;
+                            
                             BOOL isDir = NO;
                             [_fm fileExistsAtPath:childEl.filePath isDirectory:&isDir];
+                            
                             if (isDir) { //directory - just push it into stack for upload
                                 [_uploadFolderStack push:childEl];
                             } else { //file - upload ad store it in db
@@ -197,6 +193,7 @@
         } else {
             ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
             [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+                
                 if (!e) {
                     if (fse.id) [_db updateElementWithId:fse.id withValues:fse];
                     else {
