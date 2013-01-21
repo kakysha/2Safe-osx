@@ -61,12 +61,12 @@
                         elementPath = [folder stringByAppendingPathComponent:[parentElement.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]]];
                     else {
                         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"parent_id"]]){*stop = YES;return YES;} return NO;}];
-                        if (ind) {
+                        if (ind != NSNotFound) {
                             //in _serverInsertionsQueue we already have elements with absolute file paths
                             elementPath = [[[_serverInsertionsQueue objectAtIndex:ind] filePath] stringByAppendingPathComponent:[dict objectForKey:@"name"]];
                         }
                     }
-                    
+                    if (!elementPath) return; //nothing found neither in db nor in serverQueue - that innormal, but we must do with it anyway
                     FSElement *elementToAdd = [[FSElement alloc] init];
                     elementToAdd.filePath = elementPath;
                     elementToAdd.name = [dict objectForKey:@"name"];
@@ -80,6 +80,7 @@
                     FSElement *elementToDel = [_db getElementByName:[dict objectForKey:@"old_name"] withPID:[dict objectForKey:@"old_parent_id"] withFullFilePath:YES];
                     if (!elementToDel) {
                         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:[dict objectForKey:@"old_name"]] && [[obj pid] isEqualToString:[dict objectForKey:@"old_parent_id"]]){*stop = YES;return YES;} return NO;}];
+                        if (ind == NSNotFound) return; //nothing found, return
                         FSElement *elem = [_serverInsertionsQueue objectAtIndex:ind];
                         //move or rename
                         if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
