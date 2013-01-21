@@ -43,7 +43,7 @@
 -(void) getServerQueues:(NSString*) folder {
     //__block NSMutableArray *_serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
     //__block NSMutableArray *_serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358613577164777"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358760048363136"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
@@ -117,6 +117,12 @@
                         }
                     }
                 }
+            }
+            for (FSElement *el in _serverInsertionsQueue) {
+                NSLog(@"+%@ %@ %@", el.id, el.filePath, el.pid);
+            }
+            for (FSElement *el in _serverDeletionsQueue) {
+                NSLog(@"-%@ %@ %@", el.id, el.filePath, el.pid);
             }
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
