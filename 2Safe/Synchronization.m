@@ -45,6 +45,9 @@
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
+            for(id key in response){
+                NSLog(@"%@ = %@",key,[response objectForKey:key]);
+            }
             for (NSDictionary *dict in [response objectForKey:@"events"]) {
                 /* for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
@@ -56,7 +59,7 @@
                     FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
                     if (parentElement)
                         //db returns full path only starting from the application folder root
-                        elementPath = [folder stringByAppendingPathComponent:[parentElement.filePath stringByAppendingPathComponent:[dict objectForKey:@"name"]]];
+                        elementPath = [[folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:[dict objectForKey:@"name"]];
                     else {
                         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"parent_id"]]){*stop = YES;return YES;} return NO;}];
                         if (ind != NSNotFound) {
