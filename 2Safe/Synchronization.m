@@ -18,8 +18,8 @@
     NSMutableArray *_uploadFolderStack;
     NSFileManager *_fm;
     Database *_db;
-    __block NSMutableArray *_serverInsertionsQueue;
-    __block NSMutableArray *_serverDeletionsQueue;
+    NSMutableArray *_serverInsertionsQueue;
+    NSMutableArray *_serverDeletionsQueue;
     NSMutableArray *_clientInsertionsQueue;
     NSMutableArray *_clientDeletionsQueue;
     
@@ -84,7 +84,12 @@
                         //move or rename
                         if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
                             FSElement *elementToAdd = [[FSElement alloc] init];
-                            elementToAdd.filePath = [folder stringByAppendingPathComponent:elementToAdd.filePath];//TODO: INCORRECT! must calculate new filepath depending on new parent
+                            FSElement *parentElement = [_db getElementById:[dict objectForKey:@"new_parent_id"]];
+                            if(!parentElement){
+                                NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
+                                parentElement = [_serverInsertionsQueue objectAtIndex:pind];
+                            }
+                            elementToAdd.filePath = [[folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
                             elementToAdd.name = [dict objectForKey:@"new_name"];
                             elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
                             elementToAdd.id = elem.id;
@@ -100,7 +105,12 @@
                         //move -or- rename
                         if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
                             elementToDel.pid = [dict objectForKey:@"new_parent_id"];
-                            //TODO: Calculate new filePath here, before we insert it into insertionsQueue
+                            FSElement *parentElement = [_db getElementById:[dict objectForKey:@"new_parent_id"]];
+                            if(!parentElement){
+                                NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
+                                parentElement = [_serverInsertionsQueue objectAtIndex:pind];
+                            }
+                            elementToDel.filePath = [[folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
                             elementToDel.name = [dict objectForKey:@"new_name"];
                             [_serverInsertionsQueue addObject:elementToDel];
                         }
