@@ -52,7 +52,7 @@
                 /* for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
                 } */
-                if([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] ||
+                if(([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] && [dict objectForKey:@"size"]) ||
                    [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
                     
                     //trying to locate element's parent
