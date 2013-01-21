@@ -41,13 +41,13 @@
 }
 
 -(void) getServerQueues:(NSString*) folder {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358760048363136"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1358760165599963"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
-            for(id key in response){
+            /*for(id key in response){
                 NSLog(@"%@ = %@",key,[response objectForKey:key]);
-            }
+            }*/
             for (NSDictionary *dict in [response objectForKey:@"events"]) {
                 /* for(id key in dict){
                     NSLog(@"%@ = %@", key, [dict objectForKey:key]);
@@ -196,7 +196,7 @@
                             if (isDir) { //directory - just push it into stack for upload
                                 [_uploadFolderStack push:childEl];
                             } else { //file - upload ad store it in db
-                                ApiRequest *fileUploadRequest2 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : childEl.pid , @"file" : childEl, @"overwrite":@"1"} withToken:YES];
+                                ApiRequest *fileUploadRequest2 = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : childEl.pid , @"file" : childEl, @"versioned":@"1"} withToken:YES];
                                 [fileUploadRequest2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                                     if (!e) {
                                         childEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
