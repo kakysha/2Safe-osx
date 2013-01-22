@@ -167,6 +167,69 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performDeletionQueue]; });
 }
 
+-(void)resolveConflicts{
+    for(FSElement *serverInsertionElement in _serverInsertionsQueue){
+        NSUInteger foundIndex = [_clientInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:serverInsertionElement.name] && [[obj pid] isEqualToString:serverInsertionElement.pid]){*stop = YES;return YES;} return NO;}];
+        if (foundIndex != NSNotFound && serverInsertionElement.hash != @"NULL"){
+            __block NSString *sInsHash;
+            ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
+            [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                if (!e) {
+                    for(id obj in [response objectForKey:@"object"]){
+                        if([[obj key] isEqualToString:@"chksum"]){
+                            sInsHash = [obj value];
+                        }else continue;
+                    }
+                    serverInsertionElement.hash = sInsHash;
+                    FSElement *clientInsertionElement = _clientInsertionsQueue[foundIndex];
+                    if([clientInsertionElement.hash isNotEqualTo:sInsHash]){
+                        ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : clientInsertionElement.pid , @"file" : clientInsertionElement, @"versioned":@"1"} withToken:YES];
+                        [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+                            if (!e) {
+                                clientInsertionElement.id = [[response valueForKey:@"file"] valueForKey:@"id"];
+                                [_db insertElement:clientInsertionElement];
+                            } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+                        }];
+                        //TODO: fileDownloadRequest for serverInsertionElement
+                    }
+                    [_clientInsertionsQueue removeObject:clientInsertionElement];
+                    [_serverInsertionsQueue removeObject:serverInsertionElement];
+
+                }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+            }];
+        }
+    }
+    
+    NSMutableArray *nonDeletableIds = [NSMutableArray arrayWithCapacity:50];
+    for(FSElement *serverInsertionElement in _serverInsertionsQueue){
+        FSElement *p = serverInsertionElement;
+        while([p.pid isNotEqualTo:@"<null>"]){
+            [nonDeletableIds addObject:p.pid];
+            p = [_db getElementById:p.pid];
+        }
+    }
+    for (FSElement *clientDeletionElement in _clientDeletionsQueue){
+        NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:clientDeletionElement.id]){*stop = YES;return YES;} return NO;}];
+        if (foundIndex != NSNotFound){
+            [_clientDeletionsQueue removeObject:clientDeletionElement];
+        }
+    }
+    [nonDeletableIds removeAllObjects];
+    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+        FSElement *p = clientInsertionElement;
+        while([p.pid isNotEqualTo:@"<null>"]){
+            [nonDeletableIds addObject:p.pid];
+            p = [_db getElementById:p.pid];
+        }
+    }
+    for (FSElement *serverDeletionElement in _serverDeletionsQueue){
+        NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:serverDeletionElement.id]){*stop = YES;return YES;} return NO;}];
+        if (foundIndex != NSNotFound){
+            [_serverDeletionsQueue removeObject:serverDeletionElement];
+        }
+    }
+}
+
 -(void) performInsertionQueue{
     for(FSElement *fse in _clientInsertionsQueue) {
         if ([fse.hash isEqualToString:@"NULL"]) { // directory, recursively hop in it and it's contents
