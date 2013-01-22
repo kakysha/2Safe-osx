@@ -163,11 +163,11 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performDeletionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
--(void) performInsertionQueue{
+-(void) performClientInsertionQueue{
     for(FSElement *fse in _clientInsertionsQueue) {
         if ([fse.hash isEqualToString:@"NULL"]) { // directory, recursively hop in it and it's contents
             [_uploadFolderStack push:fse];
@@ -224,7 +224,7 @@
     }
 }
 
-- (void) performDeletionQueue {
+- (void) performClientDeletionQueue {
     for(FSElement *fse in _clientDeletionsQueue) {
         if ([fse.hash isEqualToString:@"NULL"]) { // directory, delete it recursively
             ApiRequest *delDirectory = [[ApiRequest alloc] initWithAction:@"remove_dir" params:@{@"dir_id" : fse.id, @"recursive":@"1"} withToken:YES];
