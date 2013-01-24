@@ -15,8 +15,18 @@
 
 @synthesize filePath;
 @synthesize id;
-@synthesize name;
-@synthesize mdate;
+@synthesize name = _name;
+- (NSString *)name {
+    if (_name) return _name;
+    _name = [filePath lastPathComponent];
+    return _name;
+}
+@synthesize mdate = _mdate;
+- (NSString *)mdate {
+    if (_mdate) return _mdate;
+    _mdate = [FSElement getModificationDateForFile:filePath];
+    return _mdate;
+}
 @synthesize pid;
 @synthesize hash = _hash;
 - (NSString *)hash {
@@ -34,8 +44,8 @@
         return nil;
     }
     filePath = path;
-    name = [path lastPathComponent];
-    mdate = [FSElement getModificationDateForFile:path];
+    _name = [path lastPathComponent];
+    _mdate = [FSElement getModificationDateForFile:path];
     return self;
 }
 
