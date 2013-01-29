@@ -24,6 +24,7 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 
 @interface SSKeychain ()
 + (NSMutableDictionary *)_queryForService:(NSString *)service account:(NSString *)account;
++ (NSError *)_errorWithCode:(OSStatus) code;
 @end
 
 @implementation SSKeychain
@@ -62,8 +63,8 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 #else
 	status = SecItemCopyMatching((CFDictionaryRef)query, &result);
 #endif
-    if (status != noErr && error != NULL) {
-		*error = [NSError errorWithDomain:kSSKeychainErrorDomain code:status userInfo:nil];
+    if (status != errSecSuccess && error != NULL) {
+		*error = [self _errorWithCode:status];
 		return nil;
 	}
 	
@@ -105,7 +106,7 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
     OSStatus status = SSKeychainErrorBadArguments;
 	if (!service || !account) {
 		if (error) {
-			*error = [NSError errorWithDomain:kSSKeychainErrorDomain code:status userInfo:nil];
+			*error = [self _errorWithCode:status];
 		}
 		return nil;
 	}
@@ -122,8 +123,8 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 	status = SecItemCopyMatching((CFDictionaryRef)query, &result);
 #endif
 	
-	if (status != noErr && error != NULL) {
-		*error = [NSError errorWithDomain:kSSKeychainErrorDomain code:status userInfo:nil];
+	if (status != errSecSuccess && error != NULL) {
+		*error = [self _errorWithCode:status];
 		return nil;
 	}
 	
@@ -146,16 +147,23 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 	OSStatus status = SSKeychainErrorBadArguments;
 	if (service && account) {
 		NSMutableDictionary *query = [self _queryForService:service account:account];
+        CFTypeRef result;
 #if __has_feature(objc_arc)
-		status = SecItemDelete((__bridge CFDictionaryRef)query);
+        [query setObject:(__bridge id)kCFBooleanTrue forKey:(__bridge id)kSecReturnRef];
+        status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
 #else
-		status = SecItemDelete((CFDictionaryRef)query);
+        [query setObject:(id)kCFBooleanTrue forKey:(id)kSecReturnRef];
+        status = SecItemCopyMatching((CFDictionaryRef)query, &result);
 #endif
+        if (errSecSuccess == status) {
+            status = SecKeychainItemDelete((SecKeychainItemRef) result);
+            CFRelease(result);
+        }
 	}
-	if (status != noErr && error != NULL) {
-		*error = [NSError errorWithDomain:kSSKeychainErrorDomain code:status userInfo:nil];
+	if (status != errSecSuccess && error != NULL) {
+		*error = [self _errorWithCode:status];
 	}
-	return (status == noErr);
+	return (status == errSecSuccess);
     
 }
 
@@ -205,10 +213,10 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 		status = SecItemAdd((CFDictionaryRef)query, NULL);
 #endif
 	}
-	if (status != noErr && error != NULL) {
-		*error = [NSError errorWithDomain:kSSKeychainErrorDomain code:status userInfo:nil];
+	if (status != errSecSuccess && error != NULL) {
+		*error = [self _errorWithCode:status];
 	}
-	return (status == noErr);
+	return (status == errSecSuccess);
 }
 
 
@@ -257,6 +265,38 @@ CFTypeRef SSKeychainAccessibilityType = NULL;
 	}
 	
     return dictionary;
+}
+
+
++ (NSError *)_errorWithCode:(OSStatus) code {
+    NSString *message = nil;
+    switch (code) {
+        case errSecSuccess:
+            return nil;
+            
+        case SSKeychainErrorBadArguments:
+            message = @"Some of the arguments were invalid";
+            break;
+            
+        case SSKeychainErrorNoPassword:
+            message = @"There was no password";
+            break;
+            
+        default:
+#if __has_feature(objc_arc)
+            message = (__bridge_transfer NSString *)SecCopyErrorMessageString(code, NULL);
+#else
+            message = [(id) SecCopyErrorMessageString(status, NULL) autorelease];
+#endif
+    }
+
+    NSDictionary *userInfo = nil;
+    if (message != nil) {
+        userInfo = @{ NSLocalizedDescriptionKey : message };
+    }
+    return [NSError errorWithDomain:kSSKeychainErrorDomain
+                               code:code
+                           userInfo:userInfo];
 }
 
 @end

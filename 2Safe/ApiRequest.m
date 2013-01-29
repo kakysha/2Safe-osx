@@ -128,7 +128,7 @@ NSString *_token;
         if (!theConnection)
             self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
         else
-            NSLog(@"Start: %@ (%@)", self.action, [[self.requestparams valueForKey:@"file"] name]);
+            NSLog(@"Start: %@ (%@)", self.action, [self.requestparams valueForKey:@"id"]);
     } else {
         NSURLResponse *resp;
         NSError *er;

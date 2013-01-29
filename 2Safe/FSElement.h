@@ -12,9 +12,9 @@
 
 @property NSString *filePath;
 @property NSString *id;
-@property NSString *name;
+@property(nonatomic) NSString *name;
 @property(nonatomic) NSString *hash;
-@property NSString *mdate;
+@property(nonatomic) NSString *mdate;
 @property NSString *pid;
 
 - (id)initWithPath:(NSString *)path;
