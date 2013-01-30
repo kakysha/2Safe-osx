@@ -39,7 +39,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = @"/Users/dan/Downloads/2safe/";
         return self;
     }
     return nil;
@@ -178,8 +178,8 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+    /*dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performDeletionQueue]; });*/
 }
 
 -(void)resolveConflicts{
@@ -198,14 +198,7 @@
                     serverInsertionElement.hash = sInsHash;
                     FSElement *clientInsertionElement = _clientInsertionsQueue[foundIndex];
                     if([clientInsertionElement.hash isNotEqualTo:sInsHash]){
-                        ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : clientInsertionElement.pid , @"file" : clientInsertionElement, @"versioned":@"1"} withToken:YES];
-                        [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
-                            if (!e) {
-                                clientInsertionElement.id = [[response valueForKey:@"file"] valueForKey:@"id"];
-                                [_db insertElement:clientInsertionElement];
-                            } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
-                        }];
-                        //TODO: fileDownloadRequest for serverInsertionElement
+                        //
                     }
                     [_clientInsertionsQueue removeObject:clientInsertionElement];
                     [_serverInsertionsQueue removeObject:serverInsertionElement];
