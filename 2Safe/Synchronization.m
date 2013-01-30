@@ -39,14 +39,14 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = @"/Users/dan/Downloads/2safe/";
         return self;
     }
     return nil;
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359064438377550"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359572272827912"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
