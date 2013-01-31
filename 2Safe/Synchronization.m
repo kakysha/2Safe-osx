@@ -86,20 +86,19 @@
                         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:[dict objectForKey:@"old_name"]] && [[obj pid] isEqualToString:[dict objectForKey:@"old_parent_id"]]){*stop = YES;return YES;} return NO;}];
                         if (ind == NSNotFound) continue; //nothing found, return
                         FSElement *elem = [_serverInsertionsQueue objectAtIndex:ind];
-                        
                         [_serverInsertionsQueue removeObjectAtIndex:ind];
                         
                         //move or rename
                         if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
                             FSElement *elementToAdd = [[FSElement alloc] init];
-                            NSString *oldPath = [[_db getElementById:[dict objectForKey:@"new_parent_id"]] filePath];
-                            if(oldPath) {
-                                oldPath = [_folder stringByAppendingPathComponent:oldPath];
+                            NSString *newParent = [[_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES] filePath];//TODO: full file path?
+                            if(newParent) {
+                                newParent = [_folder stringByAppendingPathComponent:newParent];
                             } else {
                                 NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
-                                oldPath = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
+                                newParent = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
                             }
-                            elementToAdd.filePath = [oldPath stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
+                            elementToAdd.filePath = [newParent stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
                             elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
                             //since file_moved returns no id, we need to obtain it by ourselves.
                             //TODO: here we have a bug that if we are on the intermidiate stage of the moving we cant get the id by path
