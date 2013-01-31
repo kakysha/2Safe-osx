@@ -153,7 +153,8 @@
 		578EBB6F16749E0600301434 /* controller */ = {
 			isa = PBXGroup;
 			children = (
-				F2E9BE6016B9E9ED00F2E2AD /* Tray */,
+				F2E9BE6116B9EA1100F2E2AD /* SystemTrayController.h */,
+				F2E9BE6216B9EA1100F2E2AD /* SystemTrayController.m */,
 				3710FAF61673EC03004D0067 /* FileHandler.h */,
 				3710FAF71673EC03004D0067 /* FileHandler.m */,
 				57E9A3EE16677A7700104A97 /* AppDelegate.h */,
@@ -248,15 +249,6 @@
 				571638F416A359FF00B417C1 /* Database.m */,
 			);
 			name = include;
-			sourceTree = "<group>";
-		};
-		F2E9BE6016B9E9ED00F2E2AD /* Tray */ = {
-			isa = PBXGroup;
-			children = (
-				F2E9BE6116B9EA1100F2E2AD /* SystemTrayController.h */,
-				F2E9BE6216B9EA1100F2E2AD /* SystemTrayController.m */,
-			);
-			name = Tray;
 			sourceTree = "<group>";
 		};
 		F2E9BE6816B9EF8200F2E2AD /* images */ = {
