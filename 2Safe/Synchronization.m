@@ -7,7 +7,6 @@
 //
 
 #import "Synchronization.h"
-#import "FileHandler.h"
 #import "NSMutableArray+Stack.h"
 #import "Database.h"
 #import "FSElement.h"

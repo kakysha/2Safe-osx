@@ -8,8 +8,6 @@
 
 #import "AppDelegate.h"
 #import "ApiRequest.h"
-#import "FileHandler.h"
-#import "FileTreeWrapper.h"
 #import "FSElement.h"
 #import "Database.h"
 #import "Synchronization.h"
