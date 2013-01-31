@@ -46,7 +46,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359570963660244"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359624225827826"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
@@ -85,60 +85,41 @@
                     if (!elementToDel) {
                         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:[dict objectForKey:@"old_name"]] && [[obj pid] isEqualToString:[dict objectForKey:@"old_parent_id"]]){*stop = YES;return YES;} return NO;}];
                         if (ind == NSNotFound) continue; //nothing found, return
-                        FSElement *elem = [_serverInsertionsQueue objectAtIndex:ind];
+                        elementToDel = [_serverInsertionsQueue objectAtIndex:ind];
                         [_serverInsertionsQueue removeObjectAtIndex:ind];
-                        
-                        //move or rename
-                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
-                            FSElement *elementToAdd = [[FSElement alloc] init];
-                            NSString *newParent = [[_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES] filePath];//TODO: full file path?
-                            if(newParent) {
-                                newParent = [_folder stringByAppendingPathComponent:newParent];
-                            } else {
-                                NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
-                                newParent = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
-                            }
-                            elementToAdd.filePath = [newParent stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
-                            elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                            //since file_moved returns no id, we need to obtain it by ourselves.
-                            //TODO: here we have a bug that if we are on the intermidiate stage of the moving we cant get the id by path
-                            ApiRequest *idRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url" : [elementToAdd.filePath stringByReplacingOccurrencesOfString:_folder withString:@"/"]} withToken:YES];
-                            [idRequest performRequestWithBlock:^(NSDictionary *r, NSError *e) {
-                                elementToAdd.id = [[r objectForKey:@"object"] objectForKey:@"id"];
-                            } synchronous:YES];
-                            elementToAdd.hash = elem.hash;
-                            [_serverInsertionsQueue addObject:elementToAdd];
-                            //find the deletion id corresponding to the moving file:
-                            NSArray *delIdAr = [_serverMoves allKeysForObject:elem.id];
-                            if ([delIdAr count])
-                                [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
-                        }
                     }
                     else {
                         elementToDel.filePath = [_folder stringByAppendingPathComponent:elementToDel.filePath];
                         [_serverDeletionsQueue addObject:elementToDel];
-                        //move -or- rename
-                        if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
-                            FSElement *elToAdd = [[FSElement alloc] init];
-                            //since file_moved returns no id, we need to obtain it by ourselves.
-                            //TODO: here we have a bug that if we are on the intermidiate stage of the moving we cant get the id by path
-                            ApiRequest *idRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url" : [elToAdd.filePath stringByReplacingOccurrencesOfString:_folder withString:@"/"]} withToken:YES];
-                            [idRequest performRequestWithBlock:^(NSDictionary *r, NSError *e) {
-                                elToAdd.id = [[r objectForKey:@"object"] objectForKey:@"id"];
-                            } synchronous:YES];
-                            elToAdd.id = elementToDel.id;// TODO: incorrect, there it already has got new id
-                            elToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                            FSElement *parentElement = [_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES];
-                            if(!parentElement){
-                                NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
-                                parentElement = [_serverInsertionsQueue objectAtIndex:pind];
-                            }
-                            elToAdd.filePath = [[_folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:[dict objectForKey:@"new_name"]];
-                            elToAdd.name = [dict objectForKey:@"new_name"];
-                            [_serverInsertionsQueue addObject:elToAdd];
-                            //TODO: implement serverMove here
-                        }
+                        [_serverMoves setObject:elementToDel.id forKey:elementToDel.id];
                     }
+                    //move or rename
+                    if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
+                        FSElement *elementToAdd = [[FSElement alloc] init];
+                        //since file_moved returns no id, we need to obtain it by ourselves.
+                        //TODO: here we have a bug that if we are on the intermidiate stage of the moving we cant get the id by path
+                        NSString *newParentFP = [[_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES] filePath];//TODO: full file path?
+                        if(newParentFP) {
+                            newParentFP = [_folder stringByAppendingPathComponent:newParentFP];
+                        } else {
+                            NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
+                            newParentFP = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
+                        }
+                        elementToAdd.name = [dict objectForKey:@"new_name"];
+                        elementToAdd.filePath = [newParentFP stringByAppendingPathComponent:elementToAdd.name];
+                        ApiRequest *idRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url" : [elementToAdd.filePath stringByReplacingOccurrencesOfString:_folder withString:@"/"]} withToken:YES];
+                        [idRequest performRequestWithBlock:^(NSDictionary *r, NSError *e) {
+                            elementToAdd.id = [[r objectForKey:@"object"] objectForKey:@"id"];
+                        } synchronous:YES];
+                        elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
+                        elementToAdd.hash = elementToDel.hash;
+                        [_serverInsertionsQueue addObject:elementToAdd];
+                        //find the deletion id corresponding to the moving file: //TODO: swap keys and values in _serverMoves
+                        NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
+                        if ([delIdAr count])
+                            [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
+                    }
+
                 }
             }
             for (FSElement *el in _serverInsertionsQueue) {
@@ -147,8 +128,8 @@
             for (FSElement *el in _serverDeletionsQueue) {
                 NSLog(@"-%@ %@ %@", el.id, el.filePath, el.pid);
             }
-            for (FSElement *el in [_serverMoves allKeys]) {
-                NSLog(@"-%@ %@", el, [_serverMoves objectForKey:el]);
+            for (id key in [_serverMoves allKeys]) {
+                NSLog(@"move:%@ %@", key, [_serverMoves objectForKey:key]);
             }
             
             [self performServerInsertionQueue];
@@ -192,8 +173,8 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    /*dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performDeletionQueue]; });*/
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 -(void)resolveConflicts{
@@ -333,19 +314,16 @@
 
 -(void) performServerInsertionQueue{
     for(FSElement *fse in _serverInsertionsQueue) {
-        NSUInteger foundIndex = [_serverDeletionsQueue indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.id isEqualToString:fse.id]){*stop = YES;return YES;} return NO;}];
+        NSArray *delIdAr = [_serverMoves allKeysForObject:fse.id];
         //move file
-        if (foundIndex != NSNotFound) {
-            //hence we have old id, we need to obtain new file id
-            NSString *oldId = fse.id;
-            ApiRequest *idRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url" : [fse.filePath stringByReplacingOccurrencesOfString:_folder withString:@"/"]} withToken:YES];
-            [idRequest performRequestWithBlock:^(NSDictionary *r, NSError *e) {
-                fse.id = [[r objectForKey:@"object"] objectForKey:@"id"];
-            } synchronous:YES];
-            FSElement *oldEl = [_serverDeletionsQueue objectAtIndex:foundIndex];
-            [_fm moveItemAtPath:oldEl.filePath toPath:fse.filePath error:nil];
-            [_serverDeletionsQueue removeObjectAtIndex:foundIndex];
-            [_db updateElementWithId:oldId withValues:fse];
+        if ([delIdAr count]) {
+            NSString *delId = [delIdAr objectAtIndex:0];
+            NSInteger delInd = [_serverDeletionsQueue indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.id isEqualToString:delId]){*stop = YES;return YES;} return NO;}];
+            FSElement *delEl = [_serverDeletionsQueue objectAtIndex:delInd];
+            [_fm moveItemAtPath:delEl.filePath toPath:fse.filePath error:nil];
+            [_serverDeletionsQueue removeObjectAtIndex:delInd];
+            [_serverMoves removeObjectForKey:delId];
+            [_db updateElementWithId:delId withValues:fse];
         //insert file
         } else {
             if ([fse.hash isEqualToString:@"NULL"]) {
