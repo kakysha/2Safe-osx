@@ -39,7 +39,7 @@
     
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];
-    [sync getClientQueues];
+    //[sync getClientQueues];
     [sync getServerQueues];
     
     //example of file downloading - INCORRECT!

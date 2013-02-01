@@ -45,7 +45,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359624225827826"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1359672495876737"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             NSString *elementPath;
@@ -97,15 +97,17 @@
                         FSElement *elementToAdd = [[FSElement alloc] init];
                         //since file_moved returns no id, we need to obtain it by ourselves.
                         //TODO: here we have a bug that if we are on the intermidiate stage of the moving we cant get the id by path
-                        NSString *newParentFP = [[_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES] filePath];//TODO: full file path?
-                        if(newParentFP) {
-                            newParentFP = [_folder stringByAppendingPathComponent:newParentFP];
+                        FSElement *newParent = [_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES];//TODO: full file path?
+                        NSString *newParentFP;
+                        if(newParent) {
+                            newParentFP = [_folder stringByAppendingPathComponent:newParent.filePath];
                         } else {
                             NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
                             newParentFP = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
                         }
                         elementToAdd.name = [dict objectForKey:@"new_name"];
                         elementToAdd.filePath = [newParentFP stringByAppendingPathComponent:elementToAdd.name];
+                        //TODO: bug, if the parent folder would renamed later, then we cant get the id by path (the path is outdated)
                         ApiRequest *idRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url" : [elementToAdd.filePath stringByReplacingOccurrencesOfString:_folder withString:@"/"]} withToken:YES];
                         [idRequest performRequestWithBlock:^(NSDictionary *r, NSError *e) {
                             elementToAdd.id = [[r objectForKey:@"object"] objectForKey:@"id"];
@@ -117,8 +119,10 @@
                         NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
                         if ([delIdAr count])
                             [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
+                    //delete
+                    } else {
+                        
                     }
-
                 }
             }
             for (FSElement *el in _serverInsertionsQueue) {

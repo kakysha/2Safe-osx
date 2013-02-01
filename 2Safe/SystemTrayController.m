@@ -37,7 +37,7 @@
     [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             for (id key in response) {
-                NSLog(@"%@ = %@", key, [response objectForKey:key]);
+                //NSLog(@"%@ = %@", key, [response objectForKey:key]);
             }
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
