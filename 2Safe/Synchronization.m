@@ -45,7 +45,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360448084105230"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360450193676942"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -95,7 +95,7 @@
                         elementToAdd.id = newId;
                         elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
                         if ([[dict objectForKey:@"event"] isEqualTo:@"dir_moved"]) elementToAdd.hash = @"NULL";
-                        ind > 0 ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
+                        ind > -1 ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
                         //find the deletion id corresponding to the moving file: //TODO: swap keys and values in _serverMoves
                         NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
                         if ([delIdAr count])
