@@ -199,11 +199,10 @@
                     }
                     serverInsertionElement.hash = sInsHash;
                     FSElement *clientInsertionElement = _clientInsertionsQueue[foundIndex];
-                    if([clientInsertionElement.hash isNotEqualTo:sInsHash]){
-                        //
+                    if([clientInsertionElement.hash isEqualTo:sInsHash]){
+                        [_serverInsertionsQueue removeObject:serverInsertionElement];
                     }
-                    [_clientInsertionsQueue removeObject:clientInsertionElement];
-                    [_serverInsertionsQueue removeObject:serverInsertionElement];
+                    
 
                 }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }];
