@@ -45,10 +45,9 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360425536689870"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360450193676942"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
-            NSString *elementPath;
             /*for(id key in response){
                 NSLog(@"%@ = %@",key,[response objectForKey:key]);
             }*/
@@ -57,21 +56,8 @@
                    [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
                     NSUInteger objId = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger objId, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"id"]]){*stop = YES;return YES;} return NO;}];
                     if (objId == NSNotFound){
-                        //trying to locate element's parent
-                        FSElement *parentElement = [_db getElementById:[dict objectForKey:@"parent_id"] withFullFilePath:YES];
-                        if (parentElement)
-                            //db returns full path only starting from the application folder root
-                            elementPath = [[_folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:[dict objectForKey:@"name"]];
-                        else {
-                            NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"parent_id"]]){*stop = YES;return YES;} return NO;}];
-                            if (ind != NSNotFound) {
-                                //in _serverInsertionsQueue we already have elements with absolute file paths
-                                elementPath = [[[_serverInsertionsQueue objectAtIndex:ind] filePath] stringByAppendingPathComponent:[dict objectForKey:@"name"]];
-                            }
-                        }
-                        if (!elementPath) continue; //nothing found neither in db nor in serverQueue - that innormal, but we must do with it anyway
                         FSElement *elementToAdd = [[FSElement alloc] init];
-                        elementToAdd.filePath = elementPath;
+                        elementToAdd.name = [dict objectForKey:@"name"];
                         elementToAdd.id = [dict objectForKey:@"id"];
                         elementToAdd.pid = [dict objectForKey:@"parent_id"];
                         if ([[dict objectForKey:@"event"] isEqualTo:@"dir_created"]) elementToAdd.hash = @"NULL";
@@ -91,13 +77,13 @@
                     NSString *oldId = [[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ? [dict objectForKey:@"old_id"] : [dict objectForKey:@"id"];
                     NSString *newId = [[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ? [dict objectForKey:@"new_id"] : [dict objectForKey:@"id"];
                     FSElement *elementToDel = [_db getElementById:oldId withFullFilePath:YES];
+                    NSInteger ind;
                     if (!elementToDel) {
-                        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:oldId]){*stop = YES;return YES;} return NO;}];
+                        ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:oldId]){*stop = YES;return YES;} return NO;}];
                         if (ind == NSNotFound) continue; //nothing found, return
                         elementToDel = [_serverInsertionsQueue objectAtIndex:ind];
                         [_serverInsertionsQueue removeObjectAtIndex:ind];
-                    }
-                    else {
+                    } else {
                         elementToDel.filePath = [_folder stringByAppendingPathComponent:elementToDel.filePath];
                         [_serverDeletionsQueue addObject:elementToDel];
                         [_serverMoves setObject:elementToDel.id forKey:elementToDel.id];
@@ -105,35 +91,27 @@
                     //move or rename
                     if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
                         FSElement *elementToAdd = [[FSElement alloc] init];
-                        FSElement *newParent = [_db getElementById:[dict objectForKey:@"new_parent_id"] withFullFilePath:YES];
-                        NSString *newParentFP;
-                        if(newParent) {
-                            newParentFP = [_folder stringByAppendingPathComponent:newParent.filePath];
-                        } else {
-                            NSUInteger pind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:[dict objectForKey:@"new_parent_id"]]){*stop = YES;return YES;} return NO;}];
-                            newParentFP = [[_serverInsertionsQueue objectAtIndex:pind] filePath];
-                        }
                         elementToAdd.name = [dict objectForKey:@"new_name"];
-                        elementToAdd.filePath = [newParentFP stringByAppendingPathComponent:elementToAdd.name];
                         elementToAdd.id = newId;
                         elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                        elementToAdd.hash = elementToDel.hash;
-                        [_serverInsertionsQueue addObject:elementToAdd];
+                        if ([[dict objectForKey:@"event"] isEqualTo:@"dir_moved"]) elementToAdd.hash = @"NULL";
+                        ind > -1 ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
                         //find the deletion id corresponding to the moving file: //TODO: swap keys and values in _serverMoves
                         NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
                         if ([delIdAr count])
                             [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
                     //delete
                     } else {
-                        
+                        //remove element's childs from insertionQueue, if there are some.
+                        [self removeChildrenFromQueueForElement:elementToDel];
                     }
                 }
             }
             for (FSElement *el in _serverInsertionsQueue) {
-                NSLog(@"+%@ %@ %@", el.id, el.filePath, el.pid);
+                NSLog(@"+%@ %@ %@", el.id, el.name, el.pid);
             }
             for (FSElement *el in _serverDeletionsQueue) {
-                NSLog(@"-%@ %@ %@", el.id, el.filePath, el.pid);
+                NSLog(@"-%@ %@ %@", el.id, el.name, el.pid);
             }
             for (id key in [_serverMoves allKeys]) {
                 NSLog(@"move:%@ %@", key, [_serverMoves objectForKey:key]);
@@ -144,6 +122,16 @@
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
+}
+
+-(void) removeChildrenFromQueueForElement:(FSElement *)el {
+    for (int i = 0; i < _serverInsertionsQueue.count; i++){
+        FSElement *obj = [_serverInsertionsQueue objectAtIndex:i];
+        if ([obj.pid isEqualToString:el.id]) {
+            [self removeChildrenFromQueueForElement:obj];
+            [_serverInsertionsQueue removeObject:obj];
+        }
+    }
 }
 
 -(void) getClientQueues {
@@ -318,8 +306,24 @@
     }
 }
 
+- (NSString *) getFullFilePathForElement:(FSElement *)el {
+    NSString *filePath;
+    FSElement *parentElement = [_db getElementById:el.pid withFullFilePath:YES];
+    if (parentElement)
+        filePath = [[_folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:el.name];
+    else {
+        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:el.pid]){*stop = YES;return YES;} return NO;}];
+        if (ind != NSNotFound) {
+            parentElement = [_serverInsertionsQueue objectAtIndex:ind];
+            filePath = [[self getFullFilePathForElement:parentElement] stringByAppendingPathComponent:el.name];
+        }
+    }
+    return filePath;
+}
+
 -(void) performServerInsertionQueue{
     for(FSElement *fse in _serverInsertionsQueue) {
+        fse.filePath = [self getFullFilePathForElement:fse];
         NSArray *delIdAr = [_serverMoves allKeysForObject:fse.id];
         //move file
         if ([delIdAr count]) {
@@ -334,7 +338,7 @@
         } else {
             if ([fse.hash isEqualToString:@"NULL"]) {
                 //create dir
-                [_fm createDirectoryAtPath:fse.filePath withIntermediateDirectories:YES attributes:nil error:nil];
+                [_fm createDirectoryAtPath:fse.filePath withIntermediateDirectories:NO attributes:nil error:nil];
                 [_db insertElement:fse];
             } else {
                 ApiRequest *fileDownloadRequest = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id" : fse.id} withToken:YES];
@@ -353,6 +357,7 @@
 
 -(void) performServerDeletionQueue{
     for(FSElement *fse in _serverDeletionsQueue) {
+        fse.filePath = [self getFullFilePathForElement:fse];
         [_fm removeItemAtPath:fse.filePath error:nil];
         [_db deleteElementById:fse.id];
     }
