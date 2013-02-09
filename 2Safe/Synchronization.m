@@ -45,7 +45,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360426771104937"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360448084105230"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -94,15 +94,16 @@
                         elementToAdd.name = [dict objectForKey:@"new_name"];
                         elementToAdd.id = newId;
                         elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
-                        elementToAdd.hash = elementToDel.hash;
-                        ind ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
+                        if ([[dict objectForKey:@"event"] isEqualTo:@"dir_moved"]) elementToAdd.hash = @"NULL";
+                        ind > 0 ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
                         //find the deletion id corresponding to the moving file: //TODO: swap keys and values in _serverMoves
                         NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
                         if ([delIdAr count])
                             [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
                     //delete
                     } else {
-                        
+                        //remove element's childs from insertionQueue, if there are some.
+                        [self removeChildrenFromQueueForElement:elementToDel];
                     }
                 }
             }
@@ -121,6 +122,16 @@
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
+}
+
+-(void) removeChildrenFromQueueForElement:(FSElement *)el {
+    for (int i = 0; i < _serverInsertionsQueue.count; i++){
+        FSElement *obj = [_serverInsertionsQueue objectAtIndex:i];
+        if ([obj.pid isEqualToString:el.id]) {
+            [self removeChildrenFromQueueForElement:obj];
+            [_serverInsertionsQueue removeObject:obj];
+        }
+    }
 }
 
 -(void) getClientQueues {
