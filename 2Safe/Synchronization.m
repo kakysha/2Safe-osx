@@ -45,7 +45,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360450193676942"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360492801408364"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -84,7 +84,6 @@
                         elementToDel = [_serverInsertionsQueue objectAtIndex:ind];
                         [_serverInsertionsQueue removeObjectAtIndex:ind];
                     } else {
-                        elementToDel.filePath = [_folder stringByAppendingPathComponent:elementToDel.filePath];
                         [_serverDeletionsQueue addObject:elementToDel];
                         [_serverMoves setObject:elementToDel.id forKey:elementToDel.id];
                     }
@@ -331,6 +330,7 @@
             NSString *delId = [delIdAr objectAtIndex:0];
             NSInteger delInd = [_serverDeletionsQueue indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.id isEqualToString:delId]){*stop = YES;return YES;} return NO;}];
             FSElement *delEl = [_serverDeletionsQueue objectAtIndex:delInd];
+            delEl.filePath = [self getFullFilePathForElement:delEl];
             [_fm moveItemAtPath:delEl.filePath toPath:fse.filePath error:nil];
             [_serverDeletionsQueue removeObjectAtIndex:delInd];
             [_serverMoves removeObjectForKey:delId];
