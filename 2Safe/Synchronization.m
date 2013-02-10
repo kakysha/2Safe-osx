@@ -45,7 +45,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360492801408364"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360496971044186"} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -95,10 +95,12 @@
                         elementToAdd.pid = [dict objectForKey:@"new_parent_id"];
                         if ([[dict objectForKey:@"event"] isEqualTo:@"dir_moved"]) elementToAdd.hash = @"NULL";
                         ind > -1 ? [_serverInsertionsQueue insertObject:elementToAdd atIndex:ind] : [_serverInsertionsQueue addObject:elementToAdd];
-                        //find the deletion id corresponding to the moving file: //TODO: swap keys and values in _serverMoves
-                        NSArray *delIdAr = [_serverMoves allKeysForObject:elementToDel.id];
-                        if ([delIdAr count])
-                            [_serverMoves setObject:elementToAdd.id forKey:[delIdAr objectAtIndex:0]];
+                        //find the deletion id corresponding to the moving file:
+                        NSString *delId = [_serverMoves objectForKey:elementToDel.id];
+                        if (delId) {
+                            [_serverMoves removeObjectForKey:elementToDel.id];
+                            [_serverMoves setObject:delId forKey:elementToAdd.id];
+                        }
                     //delete
                     } else {
                         //remove element's childs from insertionQueue, if there are some.
@@ -315,7 +317,10 @@
         NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:el.pid]){*stop = YES;return YES;} return NO;}];
         if (ind != NSNotFound) {
             parentElement = [_serverInsertionsQueue objectAtIndex:ind];
-            filePath = [[self getFullFilePathForElement:parentElement] stringByAppendingPathComponent:el.name];
+            if (parentElement.filePath)
+                filePath = [parentElement.filePath stringByAppendingPathComponent:el.name];
+            else
+                filePath = [[self getFullFilePathForElement:parentElement] stringByAppendingPathComponent:el.name];
         }
     }
     return filePath;
@@ -324,16 +329,15 @@
 -(void) performServerInsertionQueue{
     for(FSElement *fse in _serverInsertionsQueue) {
         fse.filePath = [self getFullFilePathForElement:fse];
-        NSArray *delIdAr = [_serverMoves allKeysForObject:fse.id];
+        NSString *delId = [_serverMoves objectForKey:fse.id];
         //move file
-        if ([delIdAr count]) {
-            NSString *delId = [delIdAr objectAtIndex:0];
+        if (delId) {
             NSInteger delInd = [_serverDeletionsQueue indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.id isEqualToString:delId]){*stop = YES;return YES;} return NO;}];
             FSElement *delEl = [_serverDeletionsQueue objectAtIndex:delInd];
             delEl.filePath = [self getFullFilePathForElement:delEl];
             [_fm moveItemAtPath:delEl.filePath toPath:fse.filePath error:nil];
             [_serverDeletionsQueue removeObjectAtIndex:delInd];
-            [_serverMoves removeObjectForKey:delId];
+            [_serverMoves removeObjectForKey:fse.id];
             [_db updateElementWithId:delId withValues:fse];
         //insert file
         } else {
