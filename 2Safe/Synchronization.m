@@ -38,7 +38,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = @"/Users/dan/Downloads/2safe/";
         return self;
     }
     return nil;
@@ -189,6 +189,7 @@
                     FSElement *clientInsertionElement = _clientInsertionsQueue[foundIndex];
                     if([clientInsertionElement.hash isEqualTo:sInsHash]){
                         [_serverInsertionsQueue removeObject:serverInsertionElement];
+                        //TODO: Add filepath to the object and add the object to database.
                     }
                     
 
