@@ -175,25 +175,23 @@
 
 -(void)resolveConflicts{
     for(FSElement *serverInsertionElement in _serverInsertionsQueue){
+        serverInsertionElement.filePath = [self getFullFilePathForElement:serverInsertionElement];
         NSUInteger foundIndex = [_clientInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:serverInsertionElement.name] && [[obj pid] isEqualToString:serverInsertionElement.pid]){*stop = YES;return YES;} return NO;}];
+        /* compare dirs recursively, as in clientInsertions there are no childs of new folders, but in serverInsertions there are */
+        if (foundIndex != NSNotFound && [serverInsertionElement.hash isEqualTo:@"NULL"]){
+            
+        }
         if (foundIndex != NSNotFound && [serverInsertionElement.hash isNotEqualTo:@"NULL"]){
-            __block NSString *sInsHash;
             ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
             [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
                 if (!e) {
-                    for(id obj in [response objectForKey:@"object"]){
-                        if([[obj key] isEqualToString:@"chksum"]){
-                            sInsHash = [obj value];
-                        }else continue;
-                    }
-                    serverInsertionElement.hash = sInsHash;
+                    serverInsertionElement.hash = [[response objectForKey:@"object"] objectForKey:@"chksum"];
                     FSElement *clientInsertionElement = _clientInsertionsQueue[foundIndex];
-                    if([clientInsertionElement.hash isNotEqualTo:sInsHash]){
-                        //
+                    if([clientInsertionElement.hash isNotEqualTo:serverInsertionElement.hash]){
+                        //TODO: conflict, make both copies on client & server with different prefixes
                     }
                     [_clientInsertionsQueue removeObject:clientInsertionElement];
                     [_serverInsertionsQueue removeObject:serverInsertionElement];
-
                 }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }];
         }
