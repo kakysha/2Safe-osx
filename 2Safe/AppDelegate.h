@@ -14,7 +14,6 @@
     BOOL _running;
     
     IBOutlet NSArrayController *ctrl;
-
 }
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;

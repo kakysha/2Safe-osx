@@ -18,7 +18,6 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
     NSOutputStream *outputStream;
     void (^responseBlock)(NSDictionary*, NSError *);
     void (^responseDataBlock)(NSData*, NSHTTPURLResponse*, NSError *);
-    BOOL isWaiting;
     REQUESTTYPE requestType;
     BOOL isMultipart;
     NSMutableData *POSTBody;
@@ -46,16 +45,7 @@ NSString *_token;
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken {
     if (self = [self initWithAction:action params:params]) {
         _withToken = withToken;
-        if (!(_token = [LoginController token])) {
-            [LoginController requestTokenWithBlock:^(NSString *res){
-                _token = res;
-                if (isWaiting) {
-                    if (responseBlock) [self performRequestWithBlock:responseBlock];
-                    else [self performDataRequestWithBlock:responseDataBlock];
-                    isWaiting = NO;
-                }
-            }];
-        }
+        _token = [LoginController token];
         return self;
     } else {
         return nil;
@@ -100,15 +90,6 @@ NSString *_token;
             break;
         }
     }
-}
-
-- (BOOL)isNeedWaitingForToken{
-    if ((self.withToken)&&(!_token)) {
-        //return and wait for block execution;
-        isWaiting = YES;
-        return YES;
-    }
-    return NO;
 }
 
 - (void)sendRequest {
@@ -179,7 +160,6 @@ NSString *_token;
         return;
     }
     responseBlock = block;
-    if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
 }
@@ -193,7 +173,6 @@ NSString *_token;
         return;
     }
     responseDataBlock = block;
-    if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
 }
@@ -208,7 +187,6 @@ NSString *_token;
         return;
     }
     responseDataBlock = block;
-    if ([self isNeedWaitingForToken]) return;
     isMultipart ? [self prepareMultipartRequestBody] : [self prepareRequestBody];
     [self sendRequest];
 }
@@ -286,11 +264,10 @@ NSString *_token;
         if (([self.error code] == 1)|| //not authorized
             ([self.error code] == 15)) { //incorrect token
             NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
-            [LoginController requestTokenWithBlock:^(NSString *res){
-                _token = res;
-                if (responseBlock) [self performRequestWithBlock:responseBlock];
-                else [self performDataRequestWithBlock:responseDataBlock];
-            }];
+            [LoginController auth];
+            _token = [LoginController token];
+            if (responseBlock) [self performRequestWithBlock:responseBlock];
+            else [self performDataRequestWithBlock:responseDataBlock];
         } else {
             if (requestType == TextRequest) responseBlock(nil, self.error);
             else responseDataBlock(nil, nil, self.error);

@@ -20,23 +20,6 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    //testing FSElement
-    /*FSElement *e1 = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
-    NSLog(@"name:%@ hash:%@ mdate:%@", e1.name, e1.hash, e1.mdate);
-    e1.id = @"2";
-    e1.pid = @"1";
-    
-    //testing db
-    Database *db = [Database databaseForAccount:@"kakysha"];
-    FSElement *e2 = [db getElementById:@"2"];
-    NSLog(@"id:%@ name:%@ hash:%@ mdate:%@ pid:%@", e2.id, e2.name, e2.hash, e2.mdate, e2.pid);
-    [db updateElementWithId:@"2" withValues:e1];
-    NSArray *child = [db childElementsOfId:@"1"];
-    
-    for (int i = 0; i < child.count; i++)
-        NSLog(@"%@", [child[i] name]);
-    */
-    
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];
     //[sync getClientQueues];
