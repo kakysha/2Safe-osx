@@ -22,22 +22,13 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    //debug
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:self.account];
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"];
+    
     self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
     self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
-    if (self.account && self.token) {
-        NSLog(@"Token: %@", self.token);
-        //new user on this computer
-        if (![self loadConfigForAccount]) {
-            [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
-            self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
-            self.rootFolderId = nil;
-            self.trashFolderId = nil;
-            self.lastActionTimestamp = nil;
-        }
-        Synchronization *sync = [[Synchronization alloc] init];
-        [sync getClientQueues];
-        //[sync getServerQueues];
-    }
+    [self authorize];
     
     //example of file downloading - INCORRECT!
     /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
@@ -84,20 +75,28 @@
         }];
     }];*/
 }
-
+- (void) authorize {
+    if (self.account && self.token) {
+        NSLog(@"Token: %@", self.token);
+        //new user on this computer
+        if (![self loadConfigForAccount]) {
+            NSLog(@"New user %@", self.account);
+            [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
+            self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
+            self.rootFolderId = nil;
+            self.trashFolderId = nil;
+            self.lastActionTimestamp = nil;
+        }
+        Synchronization *sync = [[Synchronization alloc] init];
+        [sync getClientQueues];
+        //[sync getServerQueues];
+    } else [LoginController auth];
+}
 - (void) applicationWillTerminate:(NSNotification *)notification {
     [self saveConfigForAccount];
 }
 
 @synthesize account = _account;
-- (NSString *) account {
-    if (_account) return _account;
-    [LoginController auth];
-    return _account;
-}
-- (void) setAccount:(NSString *)activeAccountName {
-    _account = activeAccountName;
-}
 + (NSString *) Account {
     return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
 }
@@ -155,14 +154,6 @@
 }
 
 @synthesize token = _token;
-- (NSString *) token {
-    if (_token) return _token;
-    [LoginController auth];
-    return _token;
-}
-- (void) setToken:(NSString *)token {
-    _token = token;
-}
 + (NSString *) Token {
     return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).token;
 }
@@ -184,9 +175,6 @@
     [[NSUserDefaults standardUserDefaults] setObject:self.account forKey:@"account"];
     [[NSUserDefaults standardUserDefaults] setObject:self.token forKey:@"token"];
     [[NSUserDefaults standardUserDefaults] setObject:dict forKey:self.account];
-    //debug
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:self.account];
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"];
 }
 
 @end

@@ -21,6 +21,7 @@
 @property NSString *trashFolderId;
 @property NSString *lastActionTimestamp;
 @property NSString *token;
+- (void) authorize;
 + (NSString *) Account;
 + (NSString *) RootFolderPath;
 + (NSString *) RootFolderId;

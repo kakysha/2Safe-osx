@@ -81,6 +81,7 @@ NSError *_error;
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
             [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];
             [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
+            [(AppDelegate *)[[NSApplication sharedApplication] delegate] authorize];
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:YES];
