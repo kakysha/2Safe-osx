@@ -11,6 +11,8 @@
 #import "FSElement.h"
 #import "Database.h"
 #import "Synchronization.h"
+#import "ApiRequest.h"
+#import "LoginController.h"
 
 @implementation AppDelegate
 
@@ -20,27 +22,22 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    //testing FSElement
-    /*FSElement *e1 = [[FSElement alloc] initWithPath:@"/Users/Drunk/Downloads/3module.pdf"];
-    NSLog(@"name:%@ hash:%@ mdate:%@", e1.name, e1.hash, e1.mdate);
-    e1.id = @"2";
-    e1.pid = @"1";
-    
-    //testing db
-    Database *db = [Database databaseForAccount:@"kakysha"];
-    FSElement *e2 = [db getElementById:@"2"];
-    NSLog(@"id:%@ name:%@ hash:%@ mdate:%@ pid:%@", e2.id, e2.name, e2.hash, e2.mdate, e2.pid);
-    [db updateElementWithId:@"2" withValues:e1];
-    NSArray *child = [db childElementsOfId:@"1"];
-    
-    for (int i = 0; i < child.count; i++)
-        NSLog(@"%@", [child[i] name]);
-    */
-    
-    //test sync
-    Synchronization *sync = [[Synchronization alloc] init];
-    //[sync getClientQueues];
-    [sync getServerQueues];
+    self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
+    self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
+    if (self.account && self.token) {
+        NSLog(@"Token: %@", self.token);
+        //new user on this computer
+        if (![self loadConfigForAccount]) {
+            [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
+            self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
+            self.rootFolderId = nil;
+            self.trashFolderId = nil;
+            self.lastActionTimestamp = nil;
+        }
+        Synchronization *sync = [[Synchronization alloc] init];
+        [sync getClientQueues];
+        //[sync getServerQueues];
+    }
     
     //example of file downloading - INCORRECT!
     /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
@@ -86,7 +83,110 @@
             }];
         }];
     }];*/
-     
+}
+
+- (void) applicationWillTerminate:(NSNotification *)notification {
+    [self saveConfigForAccount];
+}
+
+@synthesize account = _account;
+- (NSString *) account {
+    if (_account) return _account;
+    [LoginController auth];
+    return _account;
+}
+- (void) setAccount:(NSString *)activeAccountName {
+    _account = activeAccountName;
+}
++ (NSString *) Account {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
+}
+
+@synthesize rootFolderId = _rootFolderId;
+- (NSString *) rootFolderId {
+    if (_rootFolderId) return _rootFolderId;
+    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url": @"/"} withToken:YES];
+    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        _rootFolderId = [[response objectForKey:@"object"] objectForKey:@"id"];
+    } synchronous:YES];
+    return _rootFolderId;
+}
+- (void) setRootFolderId:(NSString *)rootFolderId {
+    _rootFolderId = rootFolderId;
+}
++ (NSString *) RootFolderId {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId;
+}
+
+@synthesize rootFolderPath;
++ (NSString *) RootFolderPath {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderPath;
+}
+
+@synthesize trashFolderId = _trashFolderId;
+- (NSString *) trashFolderId {
+    if (_trashFolderId) return _trashFolderId;
+    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"list_dir" params:@{} withToken:YES];
+    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        NSArray *dirs = [response objectForKey:@"list_dirs"];
+        for (NSDictionary *d in dirs) {
+            if ([[d objectForKey:@"special_dir"] isEqualToString:@"trash"]) {
+                _trashFolderId = [d objectForKey:@"id"];
+                break;
+            }
+        }
+    } synchronous:YES];
+    return _trashFolderId;
+}
+- (void) setTrashFolderId:(NSString *)trashFolderId {
+    _trashFolderId = trashFolderId;
+}
++ (NSString *) TrashFolderId {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId;
+}
+
+@synthesize lastActionTimestamp = _lastActionTimestamp;
+- (NSString *) lastActionTimestamp {
+    if (_lastActionTimestamp) return _lastActionTimestamp;
+    return [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+}
+- (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
+    _lastActionTimestamp = lastActionTimestamp;
+}
+
+@synthesize token = _token;
+- (NSString *) token {
+    if (_token) return _token;
+    [LoginController auth];
+    return _token;
+}
+- (void) setToken:(NSString *)token {
+    _token = token;
+}
++ (NSString *) Token {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).token;
+}
+
+- (BOOL) loadConfigForAccount {
+    NSDictionary *accountData = [[NSUserDefaults standardUserDefaults] valueForKey:self.account];
+    self.rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
+    self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
+    self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
+    self.lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
+    return rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
+}
+- (void) saveConfigForAccount {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:6];
+    [dict setObject:self.rootFolderPath forKey:@"rootFolderPath"];
+    [dict setObject:self.rootFolderId forKey:@"rootFolderId"];
+    [dict setObject:self.trashFolderId forKey:@"trashFolderId"];
+    [dict setObject:self.lastActionTimestamp forKey:@"lastActionTimestamp"];
+    [[NSUserDefaults standardUserDefaults] setObject:self.account forKey:@"account"];
+    [[NSUserDefaults standardUserDefaults] setObject:self.token forKey:@"token"];
+    [[NSUserDefaults standardUserDefaults] setObject:dict forKey:self.account];
+    //debug
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:self.account];
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"];
 }
 
 @end

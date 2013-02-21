@@ -13,7 +13,9 @@
 
 @interface Database : NSObject
 
++ (NSString *) dbFileForAccount:(NSString *)acc;
 + (id)databaseForAccount:(NSString *)acc;
++ (BOOL) isDbExistsForAccount:(NSString *) acc;
 - (id)initForAccount:(NSString *)acc;
 
 - (BOOL)insertElement:(FSElement *)el;
