@@ -10,6 +10,7 @@
 #import "LoginController.h"
 #import "PKMultipartInputStream.h"
 #import "FSElement.h"
+#import "AppDelegate.h"
 
 typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
 
@@ -45,7 +46,7 @@ NSString *_token;
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken {
     if (self = [self initWithAction:action params:params]) {
         _withToken = withToken;
-        _token = [LoginController token];
+        _token = AppDelegate.Token;
         return self;
     } else {
         return nil;
@@ -265,7 +266,7 @@ NSString *_token;
             ([self.error code] == 15)) { //incorrect token
             NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
             [LoginController auth];
-            _token = [LoginController token];
+            _token = AppDelegate.Token;
             if (responseBlock) [self performRequestWithBlock:responseBlock];
             else [self performDataRequestWithBlock:responseDataBlock];
         } else {

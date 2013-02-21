@@ -7,6 +7,7 @@
 //
 
 #import "Database.h"
+#import "AppDelegate.h"
 
 @implementation Database {
     FMDatabaseQueue *_dbQueue;
@@ -14,6 +15,32 @@
 
 + (id)databaseForAccount:(NSString *)acc {
     return [[self alloc] initForAccount:acc];
+}
+
++ (NSString *) _dbFileForAccount:(NSString *)acc {
+    NSString *as = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSString *appdirectory = [as stringByAppendingPathComponent:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"]];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:appdirectory isDirectory:nil])
+        [[NSFileManager defaultManager] createDirectoryAtPath:appdirectory withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *_dbFile = [appdirectory stringByAppendingPathComponent:[acc stringByAppendingString:@".db"]];
+    return _dbFile;
+}
+
++ (BOOL) isDbExistsForAccount:(NSString *)acc {
+    __block BOOL res = false;
+    NSString *_dbFile = [Database _dbFileForAccount:acc];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:_dbFile]) {
+        //check for db & table existance
+        FMDatabaseQueue *dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
+        [dbQueue inDatabase:^(FMDatabase *db) {
+            FMResultSet *r = [db executeQuery:@"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='elements'"];
+            while ([r next])
+                if ([r intForColumnIndex:0] > 0) {
+                    res = true;
+                }
+        }];
+    }
+    return res;
 }
 
 - (id)init {
@@ -25,33 +52,21 @@
 
 -(id)initForAccount:(NSString *)acc {
     if (self = [super init]) {
-        //check for Application Support directory existance
-        NSString *as = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-        NSString *appdirectory = [as stringByAppendingPathComponent:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"]];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:appdirectory isDirectory:nil])
-            [[NSFileManager defaultManager] createDirectoryAtPath:appdirectory withIntermediateDirectories:YES attributes:nil error:nil];
-        
-        NSString *_dbFile = [appdirectory stringByAppendingPathComponent:[acc stringByAppendingString:@".db"]];
-        
-        //check for db & table existance
-        _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
-        [_dbQueue inDatabase:^(FMDatabase *db) {
-            //TURN ON foreign_keys support (REQUIRED!)
-            [db executeUpdate:@"PRAGMA foreign_keys=1"];
-
-            FMResultSet *r = [db executeQuery:@"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='elements'"];
-            while ([r next])
-                if ([r intForColumnIndex:0] == 0) {
-                    [db executeUpdate:@"CREATE TABLE elements ("
-                     "id PRIMARY KEY NOT NULL,"
-                     "name TEXT NOT NULL,"
-                     "hash TEXT,"
-                     "mdate TEXT,"
-                     "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
-                     ];
-                }
-        }];
-        
+        if (![Database isDbExistsForAccount:acc]){
+            NSString *_dbFile = [Database _dbFileForAccount:acc];
+            _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
+            [_dbQueue inDatabase:^(FMDatabase *db) {
+                [db executeUpdate:@"CREATE TABLE elements ("
+                 "id PRIMARY KEY NOT NULL,"
+                 "name TEXT NOT NULL,"
+                 "hash TEXT,"
+                 "mdate TEXT,"
+                 "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
+                 ];
+                [db executeUpdate:@"INSERT INTO elements VALUES (?, ?, NULL, NULL, NULL)",
+                 AppDelegate.RootFolderId, @"root"];
+            }];   
+        }
         return self;
     } else return nil;
 }
@@ -113,7 +128,9 @@
 -(FSElement *) getElementByName:(NSString *)namex withPID:(NSString*)pidx withFullFilePath:(BOOL)ffp{
     __block FSElement *e;
     [_dbQueue inDatabase:^(FMDatabase *db) {
-        FMResultSet *res = [db executeQuery:@"SELECT * from elements WHERE name=? AND pid=?", namex, pidx];
+        NSString *sql = @"SELECT * from elements WHERE name=? AND pid=?";
+        if ((pidx == nil)||([pidx isEqualTo:@"NULL"])) sql = @"SELECT * from elements WHERE name=? AND pid ISNULL";
+        FMResultSet *res = [db executeQuery:sql, namex, pidx];
         if ([db hadError]) NSLog(@"DB Error %d: %@", [db lastErrorCode], [db lastErrorMessage]);
         NSDictionary *d;
         while ([res next])

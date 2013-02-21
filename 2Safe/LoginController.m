@@ -8,10 +8,11 @@
 
 #import "LoginController.h"
 #import "ApiRequest.h"
+#import "AppDelegate.h"
 
-@implementation LoginController
+@implementation LoginController {
+}
 
-static NSString *_token;
 NSDictionary *credentials = nil;
 BOOL isCaptchaNeeded = NO;
 NSString *captchaId;
@@ -56,29 +57,15 @@ NSError *_error;
     [[[[NSApplication sharedApplication] windows][0] delegate] updateWindow]; // DIRTY SLUTTY CODE HERE, BEWARE!
 }
 
-+ (NSString *)token{
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token for debugging
-    if (_token != nil) {
-        //NSLog(@"Getting token from Static Variable");
-        return _token;
-    }
-
-    if ((_token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"])) {
-        NSLog(@"Getting token from UserDefaults [%@]", _token);
-        return _token;
-    }
-    
-    //no token, auth
-    [LoginController auth];
-    return _token;
-}
-
 + (NSError *)error{
     return _error;
 }
 
 + (void)auth{
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
+    ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account = nil;
+    ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId = nil;
+    ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId = nil;
     _error = nil;
     if (!credentials && !(credentials = [LoginController getCredentialsFromKeychain])) {
         [LoginController showLoginWindowWithCaptcha:NO];
@@ -89,15 +76,11 @@ NSError *_error;
     [api performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (e) _error = e;
         if (!e) {
-            _token = [response valueForKey:@"token"];
-            [[NSUserDefaults standardUserDefaults] setObject:_token forKey:@"token"];
-            
-            //[credentials valueForKey:@"login"];
+            ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account = [credentials valueForKey:@"login"];
+            ((AppDelegate *)[[NSApplication sharedApplication] delegate]).token = [response valueForKey:@"token"];
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
-
             [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];
             [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
-            
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:YES];

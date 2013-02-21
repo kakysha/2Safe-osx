@@ -11,6 +11,8 @@
 #import "FSElement.h"
 #import "Database.h"
 #import "Synchronization.h"
+#import "ApiRequest.h"
+#import "LoginController.h"
 
 @implementation AppDelegate
 
@@ -20,10 +22,23 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
+    self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
+    if (self.account && self.token) {
+        //new user on this computer
+        if (![self loadConfigForAccount]) {
+            self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
+            self.rootFolderId = nil;
+            self.trashFolderId = nil;
+            self.lastActionTimestamp = @"0";
+            [Database databaseForAccount:self.account];
+        }
+    }
+    
     //test sync
     Synchronization *sync = [[Synchronization alloc] init];
-    //[sync getClientQueues];
-    [sync getServerQueues];
+    [sync getClientQueues];
+    //[sync getServerQueues];
     
     //example of file downloading - INCORRECT!
     /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
@@ -69,7 +84,76 @@
             }];
         }];
     }];*/
-     
+}
+
+@synthesize account = _account;
+- (NSString *) account {
+    if (_account) return _account;
+    [LoginController auth];
+    return _account;
+}
+- (void) setAccount:(NSString *)activeAccountName {
+    _account = activeAccountName;
+    //create DB
+}
++ (NSString *) Account {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
+}
+
+@synthesize rootFolderId = _rootFolderId;
+- (NSString *) rootFolderId {
+    if (_rootFolderId) return _rootFolderId;
+    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url": @"/"} withToken:YES];
+    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        _rootFolderId = [[response objectForKey:@"object"] objectForKey:@"id"];
+    } synchronous:YES];
+    return _rootFolderId;
+}
+- (void) setRootFolderId:(NSString *)rootFolderId {
+    _rootFolderId = rootFolderId;
+}
++ (NSString *) RootFolderId {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId;
+}
+
+@synthesize rootFolderPath = _rootFolderPath;
+- (void) setRootFolderPath:(NSString *)rootFolderPath {
+    //check if directory exists
+    _rootFolderPath = rootFolderPath;
+}
+
+@synthesize trashFolderId = _trashFolderId;
+- (NSString *) trashFolderId {
+    if (_trashFolderId) return _trashFolderId;
+    //make request
+    return _trashFolderId;
+}
+- (void) setTrashFolderId:(NSString *)trashFolderId {
+    _trashFolderId = trashFolderId;
+}
+
+@synthesize lastActionTimestamp = _lastActionTimestamp;
+
+@synthesize token = _token;
+- (NSString *) token {
+    if (_token) return _token;
+    [LoginController auth];
+    return _token;
+}
+- (void) setToken:(NSString *)token {
+    _token = token;
+}
++ (NSString *) Token {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).token;
+}
+
+- (BOOL) loadConfigForAccount {
+    NSDictionary *accountData = [[NSUserDefaults standardUserDefaults] valueForKey:_account];
+    self.rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
+    self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
+    self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
+    self.lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
+    return _rootFolderPath && _rootFolderId && _trashFolderId && _lastActionTimestamp;
 }
 
 @end

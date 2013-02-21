@@ -28,7 +28,6 @@
 		57E9A3F316677A7700104A97 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 57E9A3F116677A7700104A97 /* MainMenu.xib */; };
 		57FECB74167B4BC9005FBE30 /* PKMultipartInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 57FECB73167B4BC9005FBE30 /* PKMultipartInputStream.m */; };
 		57FECB79167B57AF005FBE30 /* FSElement.m in Sources */ = {isa = PBXBuildFile; fileRef = 57FECB78167B57AF005FBE30 /* FSElement.m */; };
-		57FF7CE116D55AC400FB7E10 /* Settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 57FF7CE016D55AC300FB7E10 /* Settings.m */; };
 		F2E9BE6316B9EA1100F2E2AD /* SystemTrayController.m in Sources */ = {isa = PBXBuildFile; fileRef = F2E9BE6216B9EA1100F2E2AD /* SystemTrayController.m */; };
 		F2E9BE6A16B9EFEE00F2E2AD /* tray_ico.ico in Resources */ = {isa = PBXBuildFile; fileRef = F2E9BE6916B9EFEE00F2E2AD /* tray_ico.ico */; };
 /* End PBXBuildFile section */
@@ -75,8 +74,6 @@
 		57FECB73167B4BC9005FBE30 /* PKMultipartInputStream.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PKMultipartInputStream.m; sourceTree = "<group>"; };
 		57FECB75167B5744005FBE30 /* FSElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSElement.h; sourceTree = "<group>"; };
 		57FECB78167B57AF005FBE30 /* FSElement.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FSElement.m; sourceTree = "<group>"; };
-		57FF7CDF16D55AC300FB7E10 /* Settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Settings.h; sourceTree = "<group>"; };
-		57FF7CE016D55AC300FB7E10 /* Settings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Settings.m; sourceTree = "<group>"; };
 		F2E9BE6116B9EA1100F2E2AD /* SystemTrayController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SystemTrayController.h; sourceTree = "<group>"; };
 		F2E9BE6216B9EA1100F2E2AD /* SystemTrayController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SystemTrayController.m; sourceTree = "<group>"; };
 		F2E9BE6916B9EFEE00F2E2AD /* tray_ico.ico */ = {isa = PBXFileReference; lastKnownFileType = image.ico; path = tray_ico.ico; sourceTree = "<group>"; };
@@ -132,8 +129,6 @@
 				57010B24167626F80039E119 /* LoginController.m */,
 				3790DFB616A35472001C8FD9 /* Synchronization.h */,
 				3790DFB716A35472001C8FD9 /* Synchronization.m */,
-				57FF7CDF16D55AC300FB7E10 /* Settings.h */,
-				57FF7CE016D55AC300FB7E10 /* Settings.m */,
 			);
 			name = controller;
 			sourceTree = "<group>";
@@ -309,7 +304,6 @@
 				571638F016A3564E00B417C1 /* FMResultSet.m in Sources */,
 				571638F516A359FF00B417C1 /* Database.m in Sources */,
 				F2E9BE6316B9EA1100F2E2AD /* SystemTrayController.m in Sources */,
-				57FF7CE116D55AC400FB7E10 /* Settings.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

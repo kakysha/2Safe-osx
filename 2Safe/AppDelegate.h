@@ -15,6 +15,18 @@
     
     IBOutlet NSArrayController *ctrl;
 }
+@property NSString *account;
+@property NSString *rootFolderId;
+@property NSString *rootFolderPath;
+@property NSString *trashFolderId;
+@property NSString *lastActionTimestamp;
+@property NSString *token;
++ (NSString *) Account;
++ (NSString *) RootFolderPath;
++ (NSString *) RootFolderId;
++ (NSString *) TrashFolderId;
++ (NSString *) LastActionTimestamp;
++ (NSString *) Token;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;

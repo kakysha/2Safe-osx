@@ -24,7 +24,6 @@
 - (IBAction)enter:(id)sender;
 - (void)updateWindow;
 
-+ (NSString *)token;
 + (NSError *)error;
 + (void)auth;
 

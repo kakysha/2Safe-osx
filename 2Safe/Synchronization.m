@@ -11,6 +11,7 @@
 #import "Database.h"
 #import "FSElement.h"
 #import "ApiRequest.h"
+#import "AppDelegate.h"
 
 @implementation Synchronization{
     NSMutableArray *_folderStack;
@@ -29,7 +30,7 @@
 - (id) init {
     if (self = [super init]) {
         _fm = [NSFileManager defaultManager];
-        _db = [Database databaseForAccount:@"kakysha"];
+        _db = [Database databaseForAccount:((AppDelegate *)[[NSApplication sharedApplication] delegate]).account];
         _folderStack = [NSMutableArray arrayWithCapacity:100];
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
         _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
