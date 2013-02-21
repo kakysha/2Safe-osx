@@ -46,7 +46,7 @@
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":@"1360496971044186"} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":AppDelegate.LastActionTimestamp} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -89,7 +89,7 @@
                         [_serverMoves setObject:elementToDel.id forKey:elementToDel.id];
                     }
                     //move or rename
-                    if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:@"1108987033540"]){ //TODO: Trash ID HERE!
+                    if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:AppDelegate.TrashFolderId]){
                         FSElement *elementToAdd = [[FSElement alloc] init];
                         elementToAdd.name = [dict objectForKey:@"new_name"];
                         elementToAdd.id = newId;
@@ -138,7 +138,7 @@
 
 -(void) getClientQueues {
     FSElement *root = [[FSElement alloc] initWithPath:_folder];
-    root.id = @"1108986033540";
+    root.id = AppDelegate.RootFolderId;
     [_folderStack push:root];
     while([_folderStack count] != 0){
         FSElement *stackElem = [_folderStack pop];

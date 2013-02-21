@@ -54,17 +54,21 @@
     if (self = [super init]) {
         NSString *_dbFile = [Database dbFileForAccount:acc];
         _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
+        if (![Database isDbExistsForAccount:acc]) {
+            [_dbQueue inDatabase:^(FMDatabase *db) {
+                [db executeUpdate:@"CREATE TABLE elements ("
+                 "id PRIMARY KEY NOT NULL,"
+                 "name TEXT NOT NULL,"
+                 "hash TEXT,"
+                 "mdate TEXT,"
+                 "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
+                 ];
+                [db executeUpdate:@"INSERT INTO elements VALUES (?, ?, NULL, NULL, NULL)",
+                 AppDelegate.RootFolderId, @"root"];
+            }];
+        }
         [_dbQueue inDatabase:^(FMDatabase *db) {
             [db executeUpdate:@"PRAGMA foreign_keys=1"];
-            [db executeUpdate:@"CREATE TABLE elements ("
-             "id PRIMARY KEY NOT NULL,"
-             "name TEXT NOT NULL,"
-             "hash TEXT,"
-             "mdate TEXT,"
-             "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
-             ];
-            [db executeUpdate:@"INSERT INTO elements VALUES (?, ?, NULL, NULL, NULL)",
-             AppDelegate.RootFolderId, @"root"];
         }];
         return self;
     } else return nil;

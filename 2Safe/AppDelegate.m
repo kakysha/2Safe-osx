@@ -25,6 +25,7 @@
     self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
     self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
     if (self.account && self.token) {
+        NSLog(@"Token: %@", self.token);
         //new user on this computer
         if (![self loadConfigForAccount]) {
             [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
@@ -33,8 +34,8 @@
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
         }
-        //Synchronization *sync = [[Synchronization alloc] init];
-        //[sync getClientQueues];
+        Synchronization *sync = [[Synchronization alloc] init];
+        [sync getClientQueues];
         //[sync getServerQueues];
     }
     
@@ -117,14 +118,7 @@
     return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId;
 }
 
-@synthesize rootFolderPath = _rootFolderPath;
-- (NSString *) rootFolderPath {
-    return _rootFolderPath;
-}
-- (void) setRootFolderPath:(NSString *)rootFolderPath {
-    //check if directory exists
-    _rootFolderPath = rootFolderPath;
-}
+@synthesize rootFolderPath;
 + (NSString *) RootFolderPath {
     return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderPath;
 }
@@ -179,7 +173,7 @@
     self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
     self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
     self.lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
-    return _rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:_rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
+    return rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
 }
 - (void) saveConfigForAccount {
     NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:6];
