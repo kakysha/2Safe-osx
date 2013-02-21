@@ -7,7 +7,6 @@
 //
 
 #import "AppDelegate.h"
-#import "ApiRequest.h"
 #import "FSElement.h"
 #import "Database.h"
 #import "Synchronization.h"
@@ -23,7 +22,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     //debug
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:self.account];
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"account"];
     //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"];
     
     self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
@@ -151,6 +150,9 @@
 }
 - (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
     _lastActionTimestamp = lastActionTimestamp;
+}
++ (NSString *) LastActionTimestamp {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).lastActionTimestamp;
 }
 
 @synthesize token = _token;
