@@ -17,7 +17,7 @@
     return [[self alloc] initForAccount:acc];
 }
 
-+ (NSString *) _dbFileForAccount:(NSString *)acc {
++ (NSString *) dbFileForAccount:(NSString *)acc {
     NSString *as = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     NSString *appdirectory = [as stringByAppendingPathComponent:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"]];
     if (![[NSFileManager defaultManager] fileExistsAtPath:appdirectory isDirectory:nil])
@@ -28,7 +28,7 @@
 
 + (BOOL) isDbExistsForAccount:(NSString *)acc {
     __block BOOL res = false;
-    NSString *_dbFile = [Database _dbFileForAccount:acc];
+    NSString *_dbFile = [Database dbFileForAccount:acc];
     if ([[NSFileManager defaultManager] fileExistsAtPath:_dbFile]) {
         //check for db & table existance
         FMDatabaseQueue *dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
@@ -52,7 +52,7 @@
 
 -(id)initForAccount:(NSString *)acc {
     if (self = [super init]) {
-        NSString *_dbFile = [Database _dbFileForAccount:acc];
+        NSString *_dbFile = [Database dbFileForAccount:acc];
         _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
         [_dbQueue inDatabase:^(FMDatabase *db) {
             [db executeUpdate:@"PRAGMA foreign_keys=1"];

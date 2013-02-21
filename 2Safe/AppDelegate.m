@@ -27,12 +27,11 @@
     if (self.account && self.token) {
         //new user on this computer
         if (![self loadConfigForAccount]) {
-            //TODO: remove old db
+            [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
             self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
             self.rootFolderId = nil;
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
-            //[Database databaseForAccount:self.account];
         }
         //Synchronization *sync = [[Synchronization alloc] init];
         //[sync getClientQueues];
