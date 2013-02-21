@@ -184,6 +184,9 @@
     [[NSUserDefaults standardUserDefaults] setObject:self.account forKey:@"account"];
     [[NSUserDefaults standardUserDefaults] setObject:self.token forKey:@"token"];
     [[NSUserDefaults standardUserDefaults] setObject:dict forKey:self.account];
+    //debug
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:self.account];
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"];
 }
 
 @end
