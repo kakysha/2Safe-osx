@@ -32,7 +32,7 @@
     [statusItem setToolTip:@"2Safe"];
     
     //Create request. return disk quota
-    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_disk_quota" params:@{} withToken:YES];
+    //ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_disk_quota" params:@{} withToken:YES];
     //send request
     /*[r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {

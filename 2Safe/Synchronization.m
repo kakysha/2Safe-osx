@@ -30,7 +30,7 @@
 - (id) init {
     if (self = [super init]) {
         _fm = [NSFileManager defaultManager];
-        _db = [Database databaseForAccount:((AppDelegate *)[[NSApplication sharedApplication] delegate]).account];
+        _db = [Database databaseForAccount:AppDelegate.Account];
         _folderStack = [NSMutableArray arrayWithCapacity:100];
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
         _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
@@ -39,7 +39,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = AppDelegate.RootFolderPath;
         return self;
     }
     return nil;

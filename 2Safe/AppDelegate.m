@@ -27,18 +27,17 @@
     if (self.account && self.token) {
         //new user on this computer
         if (![self loadConfigForAccount]) {
+            //TODO: remove old db
             self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
             self.rootFolderId = nil;
             self.trashFolderId = nil;
-            self.lastActionTimestamp = @"0";
-            [Database databaseForAccount:self.account];
+            self.lastActionTimestamp = nil;
+            //[Database databaseForAccount:self.account];
         }
+        //Synchronization *sync = [[Synchronization alloc] init];
+        //[sync getClientQueues];
+        //[sync getServerQueues];
     }
-    
-    //test sync
-    Synchronization *sync = [[Synchronization alloc] init];
-    [sync getClientQueues];
-    //[sync getServerQueues];
     
     //example of file downloading - INCORRECT!
     /*ApiRequest *r1 = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id": @"121928033048"} withToken:YES];
@@ -86,6 +85,10 @@
     }];*/
 }
 
+- (void) applicationWillTerminate:(NSNotification *)notification {
+    [self saveConfigForAccount];
+}
+
 @synthesize account = _account;
 - (NSString *) account {
     if (_account) return _account;
@@ -94,7 +97,6 @@
 }
 - (void) setAccount:(NSString *)activeAccountName {
     _account = activeAccountName;
-    //create DB
 }
 + (NSString *) Account {
     return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
@@ -117,22 +119,47 @@
 }
 
 @synthesize rootFolderPath = _rootFolderPath;
+- (NSString *) rootFolderPath {
+    return _rootFolderPath;
+}
 - (void) setRootFolderPath:(NSString *)rootFolderPath {
     //check if directory exists
     _rootFolderPath = rootFolderPath;
+}
++ (NSString *) RootFolderPath {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderPath;
 }
 
 @synthesize trashFolderId = _trashFolderId;
 - (NSString *) trashFolderId {
     if (_trashFolderId) return _trashFolderId;
-    //make request
+    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"list_dir" params:@{} withToken:YES];
+    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        NSArray *dirs = [response objectForKey:@"list_dirs"];
+        for (NSDictionary *d in dirs) {
+            if ([[d objectForKey:@"special_dir"] isEqualToString:@"trash"]) {
+                _trashFolderId = [d objectForKey:@"id"];
+                break;
+            }
+        }
+    } synchronous:YES];
     return _trashFolderId;
 }
 - (void) setTrashFolderId:(NSString *)trashFolderId {
     _trashFolderId = trashFolderId;
 }
++ (NSString *) TrashFolderId {
+    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId;
+}
 
 @synthesize lastActionTimestamp = _lastActionTimestamp;
+- (NSString *) lastActionTimestamp {
+    if (_lastActionTimestamp) return _lastActionTimestamp;
+    return [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+}
+- (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
+    _lastActionTimestamp = lastActionTimestamp;
+}
 
 @synthesize token = _token;
 - (NSString *) token {
@@ -148,12 +175,22 @@
 }
 
 - (BOOL) loadConfigForAccount {
-    NSDictionary *accountData = [[NSUserDefaults standardUserDefaults] valueForKey:_account];
+    NSDictionary *accountData = [[NSUserDefaults standardUserDefaults] valueForKey:self.account];
     self.rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
     self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
     self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
     self.lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
-    return _rootFolderPath && _rootFolderId && _trashFolderId && _lastActionTimestamp;
+    return _rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:_rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
+}
+- (void) saveConfigForAccount {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:6];
+    [dict setObject:self.rootFolderPath forKey:@"rootFolderPath"];
+    [dict setObject:self.rootFolderId forKey:@"rootFolderId"];
+    [dict setObject:self.trashFolderId forKey:@"trashFolderId"];
+    [dict setObject:self.lastActionTimestamp forKey:@"lastActionTimestamp"];
+    [[NSUserDefaults standardUserDefaults] setObject:self.account forKey:@"account"];
+    [[NSUserDefaults standardUserDefaults] setObject:self.token forKey:@"token"];
+    [[NSUserDefaults standardUserDefaults] setObject:dict forKey:self.account];
 }
 
 @end
