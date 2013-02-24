@@ -25,12 +25,14 @@
     NSMutableArray *_clientInsertionsQueue;
     NSMutableArray *_clientDeletionsQueue;
     NSString *_folder;
+    AppDelegate *_app;
 }
 
 - (id) init {
     if (self = [super init]) {
+        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
         _fm = [NSFileManager defaultManager];
-        _db = [Database databaseForAccount:AppDelegate.Account];
+        _db = [Database databaseForAccount:_app.account];
         _folderStack = [NSMutableArray arrayWithCapacity:100];
         _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
         _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
@@ -39,14 +41,14 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/dan/Downloads/2safe/";
+        _folder = @"/Users/Drunk/Downloads/2safe/";
         return self;
     }
     return nil;
 }
 
 -(void) getServerQueues {
-    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":AppDelegate.LastActionTimestamp} withToken:YES];
+    ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":_app.lastActionTimestamp} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
             /*for(id key in response){
@@ -89,7 +91,7 @@
                         [_serverMoves setObject:elementToDel.id forKey:elementToDel.id];
                     }
                     //move or rename
-                    if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:AppDelegate.TrashFolderId]){
+                    if ([[dict objectForKey:@"new_parent_id"] isNotEqualTo:_app.trashFolderId]){
                         FSElement *elementToAdd = [[FSElement alloc] init];
                         elementToAdd.name = [dict objectForKey:@"new_name"];
                         elementToAdd.id = newId;
@@ -138,7 +140,7 @@
 
 -(void) getClientQueues {
     FSElement *root = [[FSElement alloc] initWithPath:_folder];
-    root.id = AppDelegate.RootFolderId;
+    root.id = _app.rootFolderId;
     [_folderStack push:root];
     while([_folderStack count] != 0){
         FSElement *stackElem = [_folderStack pop];

@@ -77,7 +77,8 @@
 - (void) authorize {
     if (self.account && self.token) {
         NSLog(@"Token: %@", self.token);
-        //new user on this computer
+        
+        //new user on this computer or some information is lost
         if (![self loadConfigForAccount]) {
             NSLog(@"New user %@", self.account);
             [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
@@ -85,7 +86,9 @@
             self.rootFolderId = nil;
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
+            //TODO: login, initialize root folder & download files from server
         }
+        
         Synchronization *sync = [[Synchronization alloc] init];
         [sync getClientQueues];
         //[sync getServerQueues];
@@ -96,9 +99,6 @@
 }
 
 @synthesize account = _account;
-+ (NSString *) Account {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
-}
 
 @synthesize rootFolderId = _rootFolderId;
 - (NSString *) rootFolderId {
@@ -112,14 +112,8 @@
 - (void) setRootFolderId:(NSString *)rootFolderId {
     _rootFolderId = rootFolderId;
 }
-+ (NSString *) RootFolderId {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId;
-}
 
 @synthesize rootFolderPath;
-+ (NSString *) RootFolderPath {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderPath;
-}
 
 @synthesize trashFolderId = _trashFolderId;
 - (NSString *) trashFolderId {
@@ -139,9 +133,6 @@
 - (void) setTrashFolderId:(NSString *)trashFolderId {
     _trashFolderId = trashFolderId;
 }
-+ (NSString *) TrashFolderId {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId;
-}
 
 @synthesize lastActionTimestamp = _lastActionTimestamp;
 - (NSString *) lastActionTimestamp {
@@ -150,9 +141,6 @@
 }
 - (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
     _lastActionTimestamp = lastActionTimestamp;
-}
-+ (NSString *) LastActionTimestamp {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).lastActionTimestamp;
 }
 
 @synthesize token = _token;

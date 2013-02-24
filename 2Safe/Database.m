@@ -11,6 +11,7 @@
 
 @implementation Database {
     FMDatabaseQueue *_dbQueue;
+    AppDelegate *_app;
 }
 
 + (id)databaseForAccount:(NSString *)acc {
@@ -52,6 +53,7 @@
 
 -(id)initForAccount:(NSString *)acc {
     if (self = [super init]) {
+        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
         NSString *_dbFile = [Database dbFileForAccount:acc];
         _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
         if (![Database isDbExistsForAccount:acc]) {
@@ -64,7 +66,7 @@
                  "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
                  ];
                 [db executeUpdate:@"INSERT INTO elements VALUES (?, ?, NULL, NULL, NULL)",
-                 AppDelegate.RootFolderId, @"root"];
+                 _app.rootFolderId, @"root"];
             }];
         }
         [_dbQueue inDatabase:^(FMDatabase *db) {

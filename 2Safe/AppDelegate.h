@@ -22,12 +22,6 @@
 @property NSString *lastActionTimestamp;
 @property NSString *token;
 - (void) authorize;
-+ (NSString *) Account;
-+ (NSString *) RootFolderPath;
-+ (NSString *) RootFolderId;
-+ (NSString *) TrashFolderId;
-+ (NSString *) LastActionTimestamp;
-+ (NSString *) Token;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;
