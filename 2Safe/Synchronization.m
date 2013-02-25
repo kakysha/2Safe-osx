@@ -24,6 +24,7 @@
     NSMutableArray *_serverDeletionsQueue;
     NSMutableArray *_clientInsertionsQueue;
     NSMutableArray *_clientDeletionsQueue;
+    NSMutableDictionary *_timeStamps;
     NSString *_folder;
     AppDelegate *_app;
 }
@@ -41,6 +42,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
+        _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
         _folder = _app.rootFolderPath;
         return self;
     }
@@ -51,9 +53,6 @@
     ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":_app.lastActionTimestamp} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
         if (!e) {
-            /*for(id key in response){
-                NSLog(@"%@ = %@",key,[response objectForKey:key]);
-            }*/
             for (NSDictionary *dict in [response objectForKey:@"events"]) {
                 if(([[dict objectForKey:@"event"] isEqualTo:@"file_uploaded"] && [dict objectForKey:@"size"]) ||
                    [[dict objectForKey:@"event"] isEqualTo:@"dir_created"]){
@@ -110,6 +109,9 @@
                         [self removeChildrenFromQueueForElement:elementToDel];
                     }
                 }
+                //save timestamps
+                NSString *tsid = [dict objectForKey:@"id"] ? [dict objectForKey:@"id"] : [dict objectForKey:@"new_id"];
+                [_timeStamps setObject:[dict objectForKey:@"timestamp"] forKey:tsid];
             }
             for (FSElement *el in _serverInsertionsQueue) {
                 NSLog(@"+%@ %@ %@", el.id, el.name, el.pid);
@@ -450,6 +452,8 @@
                 }];
             }
         }
+        if ([_timeStamps objectForKey:fse.id])
+            _app.lastActionTimestamp = [NSString stringWithFormat:@"%@",[_timeStamps objectForKey:fse.id]];
     }
 }
 
@@ -458,6 +462,8 @@
         fse.filePath = [self getFullFilePathForElement:fse];
         [_fm removeItemAtPath:fse.filePath error:nil];
         [_db deleteElementById:fse.id];
+        if ([_timeStamps objectForKey:fse.id])
+            _app.lastActionTimestamp = [_timeStamps objectForKey:fse.id];
     }
 }
 

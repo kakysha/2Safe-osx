@@ -57,6 +57,7 @@
 }
 - (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
     _lastActionTimestamp = lastActionTimestamp;
+    [self saveConfigForAccount];
 }
 @synthesize token;
 @synthesize used_bytes;
@@ -167,7 +168,7 @@
     self.rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
     self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
     self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
-    self.lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
+    _lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
     return rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
 }
 - (void) saveConfigForAccount {
@@ -179,6 +180,7 @@
     [dict setObject:self.trashFolderId forKey:@"trashFolderId"];
     [dict setObject:self.lastActionTimestamp forKey:@"lastActionTimestamp"];
     [[NSUserDefaults standardUserDefaults] setObject:dict forKey:self.account];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 @end
