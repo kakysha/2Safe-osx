@@ -7,21 +7,23 @@
 //
 
 #import "SystemTrayController.h"
-#import "ApiRequest.h"
+#import "AppDelegate.h"
 
-@implementation SystemTrayController
+@implementation SystemTrayController {
+    AppDelegate *_app;
+}
 
 - (void) awakeFromNib{
+    _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
     
     //Create the NSStatusBar and set its length
-    statusItem = [[[NSStatusBar systemStatusBar] statusItemWithLength:60] init];
+    statusItem = [[[NSStatusBar systemStatusBar] statusItemWithLength:25] init];
     
     //Load image
     NSBundle *bundle = [NSBundle mainBundle];
     statusImage = [[NSImage alloc] initWithContentsOfFile: [bundle pathForResource: @"tray_ico" ofType: @"ico"]];
     
     //Sets the images and text in NSStatusItem
-    [statusItem setTitle:@"2Safe"];
     [statusItem setImage:statusImage];
     [statusItem setHighlightMode:YES];
     
@@ -30,26 +32,15 @@
     
     //Sets the tooptip for our item
     [statusItem setToolTip:@"2Safe"];
-    
-    //Create request. return disk quota
-    //ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_disk_quota" params:@{} withToken:YES];
-    //send request
-    /*[r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
-        if (!e) {
-            for (id key in response) {
-                //NSLog(@"%@ = %@", key, [response objectForKey:key]);
-            }
-        } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
-    }];*/
 }
 
 
 //Open 2Safe folder
 - (IBAction)openFolder:(id)sender {
-    NSString* stringContainingPath = @"/Users/Puchok/Desktop/1";
-    NSURL *fileURL = [NSURL fileURLWithPath: stringContainingPath];
-    NSURL *folderURL = [fileURL URLByDeletingLastPathComponent];
-    [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[ folderURL ]];
+    if (_app.rootFolderPath) {
+        NSURL *folderURL = [NSURL URLWithString:_app.rootFolderPath];
+        [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[ folderURL ]];
+    }
 }
 
 //Open 2Safe's web site
