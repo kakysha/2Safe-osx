@@ -42,7 +42,8 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/dan/Downloads/2safe/";
+        _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
+        _folder = _app.rootFolderPath;
         return self;
     }
     return nil;
@@ -135,8 +136,8 @@
                 NSLog(@"move:%@ %@", key, [_serverMoves objectForKey:key]);
             }
             
-            //[self performServerInsertionQueue];
-            //[self performServerDeletionQueue];
+            [self performServerInsertionQueue];
+            [self performServerDeletionQueue];
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
@@ -186,8 +187,8 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 -(void)resolveConflicts{

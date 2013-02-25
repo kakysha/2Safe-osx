@@ -158,9 +158,9 @@
         }
         
         Synchronization *sync = [[Synchronization alloc] init];
-        //[sync getClientQueues];
-        //[sync getServerQueues];
-        [sync startSynchronization];
+        [sync getClientQueues];
+        [sync getServerQueues];
+        //[sync startSynchronization];
     } else [LoginController auth];
 }
 
