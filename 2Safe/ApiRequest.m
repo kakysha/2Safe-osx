@@ -25,6 +25,7 @@ typedef enum { TextRequest, DataRequest, StreamRequest } REQUESTTYPE;
     NSUInteger contentLength;
     PKMultipartInputStream *uploadFileStream;
     BOOL sync;
+    AppDelegate *_app;
 }
 
 NSString *POSTBoundary = @"0xKhTmLbOuNdArY";
@@ -33,6 +34,7 @@ NSString *_token;
 
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params {
     if (self = [super init]) {
+        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
         uploadFileStream = [[PKMultipartInputStream alloc] init];
         POSTBody = [NSMutableData data];
         _action = action;
@@ -46,7 +48,7 @@ NSString *_token;
 - (id)initWithAction:(NSString *)action params:(NSDictionary *)params withToken:(BOOL)withToken {
     if (self = [self initWithAction:action params:params]) {
         _withToken = withToken;
-        _token = AppDelegate.Token;
+        _token = _app.token;
         return self;
     } else {
         return nil;
@@ -266,7 +268,7 @@ NSString *_token;
             ([self.error code] == 15)) { //incorrect token
             NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
             [LoginController auth];
-            _token = AppDelegate.Token;
+            _token = _app.token;
             if (responseBlock) [self performRequestWithBlock:responseBlock];
             else [self performDataRequestWithBlock:responseDataBlock];
         } else {

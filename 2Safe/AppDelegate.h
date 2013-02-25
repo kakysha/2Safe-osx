@@ -21,13 +21,11 @@
 @property NSString *trashFolderId;
 @property NSString *lastActionTimestamp;
 @property NSString *token;
-- (void) authorize;
-+ (NSString *) Account;
-+ (NSString *) RootFolderPath;
-+ (NSString *) RootFolderId;
-+ (NSString *) TrashFolderId;
-+ (NSString *) LastActionTimestamp;
-+ (NSString *) Token;
+@property long long used_bytes;
+@property long long total_bytes;
+@property NSString *used_space;
+
+- (void) start;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;

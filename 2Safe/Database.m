@@ -11,6 +11,7 @@
 
 @implementation Database {
     FMDatabaseQueue *_dbQueue;
+    AppDelegate *_app;
 }
 
 + (id)databaseForAccount:(NSString *)acc {
@@ -33,11 +34,9 @@
         //check for db & table existance
         FMDatabaseQueue *dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
         [dbQueue inDatabase:^(FMDatabase *db) {
-            FMResultSet *r = [db executeQuery:@"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='elements'"];
+            FMResultSet *r = [db executeQuery:@"SELECT id FROM elements WHERE name='root' AND pid IS NULL"];
             while ([r next])
-                if ([r intForColumnIndex:0] > 0) {
                     res = true;
-                }
         }];
     }
     return res;
@@ -52,6 +51,7 @@
 
 -(id)initForAccount:(NSString *)acc {
     if (self = [super init]) {
+        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
         NSString *_dbFile = [Database dbFileForAccount:acc];
         _dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
         if (![Database isDbExistsForAccount:acc]) {
@@ -64,7 +64,7 @@
                  "pid INTEGER REFERENCES elements(id) ON UPDATE CASCADE ON DELETE CASCADE)"
                  ];
                 [db executeUpdate:@"INSERT INTO elements VALUES (?, ?, NULL, NULL, NULL)",
-                 AppDelegate.RootFolderId, @"root"];
+                 _app.rootFolderId, @"root"];
             }];
         }
         [_dbQueue inDatabase:^(FMDatabase *db) {
