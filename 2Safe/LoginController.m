@@ -17,7 +17,7 @@ NSDictionary *credentials = nil;
 BOOL isCaptchaNeeded = NO;
 NSString *captchaId;
 NSError *_error;
-
+BOOL restart = NO;
 @synthesize window;
 @synthesize captchaView;
 @synthesize login;
@@ -61,11 +61,13 @@ NSError *_error;
     return _error;
 }
 
-+ (void)auth{
++ (void) authAndRestart{
+    restart = true;
+    [LoginController auth];
+}
++ (void) auth{
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
     ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account = nil;
-    ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId = nil;
-    ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId = nil;
     _error = nil;
     if (!credentials && !(credentials = [LoginController getCredentialsFromKeychain])) {
         [LoginController showLoginWindowWithCaptcha:NO];
@@ -81,7 +83,7 @@ NSError *_error;
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
             [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];
             [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
-            [(AppDelegate *)[[NSApplication sharedApplication] delegate] authorize];
+            if (restart) {[((AppDelegate *)[[NSApplication sharedApplication] delegate]) start]; restart = false;}
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
             [LoginController showLoginWindowWithCaptcha:YES];

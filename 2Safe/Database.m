@@ -34,11 +34,9 @@
         //check for db & table existance
         FMDatabaseQueue *dbQueue = [FMDatabaseQueue databaseQueueWithPath:_dbFile];
         [dbQueue inDatabase:^(FMDatabase *db) {
-            FMResultSet *r = [db executeQuery:@"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='elements'"];
+            FMResultSet *r = [db executeQuery:@"SELECT id FROM elements WHERE name='root' AND pid IS NULL"];
             while ([r next])
-                if ([r intForColumnIndex:0] > 0) {
                     res = true;
-                }
         }];
     }
     return res;

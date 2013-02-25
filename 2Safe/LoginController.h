@@ -25,6 +25,7 @@
 - (void)updateWindow;
 
 + (NSError *)error;
-+ (void)auth;
++ (void) auth;
++ (void) authAndRestart;
 
 @end
