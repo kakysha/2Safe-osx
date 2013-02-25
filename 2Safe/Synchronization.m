@@ -41,7 +41,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = _app.rootFolderPath;
         return self;
     }
     return nil;

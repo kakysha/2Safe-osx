@@ -63,7 +63,7 @@
 @synthesize total_bytes;
 @synthesize used_space = _used_space;
 - (NSString *) used_space {
-    _used_space = self.total_bytes > 0 ? [NSString stringWithFormat:@"%.f%%  out of %.1f GB used", (float)(self.used_bytes / self.total_bytes) * 100, (float)(self.total_bytes/1024/1024/1024)] : nil;
+    _used_space = self.total_bytes > 0 ? [NSString stringWithFormat:@"%.f%% of %.fGB used", (float)(self.used_bytes / self.total_bytes) * 100, (float)(self.total_bytes/1024/1024/1024)] : nil;
     return _used_space;
 }
 - (void) setUsed_space:(NSString *)used_space {
