@@ -149,7 +149,7 @@
         if (![self loadConfigForAccount]) {
             NSLog(@"New user %@", self.account);
             [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
-            self.rootFolderPath = @"/Users/Drunk/Downloads/2safe/";
+            self.rootFolderPath = @"/Users/dan/Downloads/2safe/";
             self.rootFolderId = nil;
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
@@ -161,74 +161,6 @@
         //[sync getServerQueues];
         [sync startSynchronization];
     } else [LoginController auth];
-}
-- (void) applicationWillTerminate:(NSNotification *)notification {
-    [self saveConfigForAccount];
-}
-
-@synthesize account = _account;
-+ (NSString *) Account {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account;
-}
-
-@synthesize rootFolderId = _rootFolderId;
-- (NSString *) rootFolderId {
-    if (_rootFolderId) return _rootFolderId;
-    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"url": @"/"} withToken:YES];
-    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
-        _rootFolderId = [[response objectForKey:@"object"] objectForKey:@"id"];
-    } synchronous:YES];
-    return _rootFolderId;
-}
-- (void) setRootFolderId:(NSString *)rootFolderId {
-    _rootFolderId = rootFolderId;
-}
-+ (NSString *) RootFolderId {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderId;
-}
-
-@synthesize rootFolderPath;
-+ (NSString *) RootFolderPath {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).rootFolderPath;
-}
-
-@synthesize trashFolderId = _trashFolderId;
-- (NSString *) trashFolderId {
-    if (_trashFolderId) return _trashFolderId;
-    ApiRequest *r2 = [[ApiRequest alloc] initWithAction:@"list_dir" params:@{} withToken:YES];
-    [r2 performRequestWithBlock:^(NSDictionary *response, NSError *e) {
-        NSArray *dirs = [response objectForKey:@"list_dirs"];
-        for (NSDictionary *d in dirs) {
-            if ([[d objectForKey:@"special_dir"] isEqualToString:@"trash"]) {
-                _trashFolderId = [d objectForKey:@"id"];
-                break;
-            }
-        }
-    } synchronous:YES];
-    return _trashFolderId;
-}
-- (void) setTrashFolderId:(NSString *)trashFolderId {
-    _trashFolderId = trashFolderId;
-}
-+ (NSString *) TrashFolderId {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).trashFolderId;
-}
-
-@synthesize lastActionTimestamp = _lastActionTimestamp;
-- (NSString *) lastActionTimestamp {
-    if (_lastActionTimestamp) return _lastActionTimestamp;
-    return [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
-}
-- (void) setLastActionTimestamp:(NSString *)lastActionTimestamp {
-    _lastActionTimestamp = lastActionTimestamp;
-}
-+ (NSString *) LastActionTimestamp {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).lastActionTimestamp;
-}
-
-@synthesize token = _token;
-+ (NSString *) Token {
-    return ((AppDelegate *)[[NSApplication sharedApplication] delegate]).token;
 }
 
 - (BOOL) loadConfigForAccount {

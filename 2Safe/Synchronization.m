@@ -41,7 +41,7 @@
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = @"/Users/Drunk/Downloads/2safe/";
+        _folder = @"/Users/dan/Downloads/2safe/";
         return self;
     }
     return nil;
@@ -243,15 +243,36 @@
 
             }
         }
+        else if (foundIndex != NSNotFound){
+            FSElement *serverInsertionElement = [_serverInsertionsQueue objectAtIndex:foundIndex];
+            __block NSString *sInsHash;
+            ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
+            [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                if (!e) {
+                    for(id obj in [response objectForKey:@"object"]){
+                        if([[obj key] isEqualToString:@"chksum"]){
+                            sInsHash = [obj value];
+                        }else continue;
+                    }
+                    serverInsertionElement.hash = sInsHash;
+                    if([clientInsertionElement.hash isEqualTo:sInsHash]){
+                        [_serverInsertionsQueue removeObject:serverInsertionElement];
+                        clientInsertionElement.id = serverInsertionElement.id;
+                        [_db insertElement:clientInsertionElement];
+                        [_clientInsertionsQueue removeObject:clientInsertionElement];
+                    }
+                }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+            }];
+        }
     }
-        
+
     NSMutableArray *nonDeletableIds = [NSMutableArray arrayWithCapacity:50];
     for(FSElement *serverInsertionElement in _serverInsertionsQueue){
         FSElement *p = serverInsertionElement;
         [nonDeletableIds addObject:p.id];
         while([p.pid isNotEqualTo:@"<null>"]){
             NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
-            if(foundIndex != NSNotFound){
+            if(foundIndex == NSNotFound){
                 [nonDeletableIds addObject:p.pid];
             }
             foundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
@@ -262,12 +283,56 @@
             }
         }
     }
-    for (FSElement *clientDeletionElement in _clientDeletionsQueue){
-        NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:clientDeletionElement.id]){*stop = YES;return YES;} return NO;}];
-        if (foundIndex != NSNotFound && [clientDeletionElement.hash isEqualToString:@"NULL"]){
-            [_clientDeletionsQueue removeObject:clientDeletionElement];
-            [_folderStack removeAllObjects];
-                [_folderStack push: clientDeletionElement];
+    if([nonDeletableIds count] != 0){
+        for (FSElement *clientDeletionElement in _clientDeletionsQueue){
+            NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:clientDeletionElement.id]){*stop = YES;return YES;} return NO;}];
+            if (foundIndex != NSNotFound && [clientDeletionElement.hash isEqualToString:@"NULL"]){
+                [_clientDeletionsQueue removeObject:clientDeletionElement];
+                [_folderStack removeAllObjects];
+                    [_folderStack push: clientDeletionElement];
+                    while([_folderStack count] != 0){
+                        FSElement *stackElem = [_folderStack pop];
+                        NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
+                        for(NSString *file in files) {
+                            //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
+                            FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
+                            BOOL isDir = NO;
+                            [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
+                            NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
+                            if (nextFoundIndex != NSNotFound) {
+                                if(isDir){
+                                    [_folderStack push:elementToAdd];
+                                }
+                            }
+                            else{
+                                [_clientDeletionsQueue addObject:elementToAdd];
+                            }
+                        }
+                        
+                    }
+            }
+        }
+    }
+    [nonDeletableIds removeAllObjects];
+    NSMutableArray *nonDeletableObjects = [[NSMutableArray alloc] initWithCapacity:50];
+    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+        FSElement *p = clientInsertionElement;
+        //[nonDeletableObjects addObject:p];
+        while([p.id isNotEqualTo:@"<null>"]){
+            NSUInteger foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
+            if(foundIndex == NSNotFound){
+                [nonDeletableObjects addObject:p];
+            }
+            p = [_db getElementById:p.pid];
+        }
+    }
+    if ([nonDeletableObjects count] != 0){
+        for (FSElement *serverDeletionElement in _serverDeletionsQueue){
+            NSUInteger foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj pid] isEqualToString:serverDeletionElement.pid] && [[obj name] isEqualToString:serverDeletionElement.name]){*stop = YES;return YES;} return NO;}];
+            if (foundIndex != NSNotFound && [serverDeletionElement.hash isEqualToString:@"NULL"]){
+                [_serverDeletionsQueue removeObject:serverDeletionElement];
+                [_folderStack removeAllObjects];
+                [_folderStack push: serverDeletionElement];
                 while([_folderStack count] != 0){
                     FSElement *stackElem = [_folderStack pop];
                     NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
@@ -283,56 +348,11 @@
                             }
                         }
                         else{
-                            [_clientDeletionsQueue addObject:elementToAdd];
+                            [_serverDeletionsQueue addObject:elementToAdd];
                         }
                     }
                     
                 }
-        }
-    }
-    
-    [nonDeletableIds removeAllObjects];
-    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
-        FSElement *p = clientInsertionElement;
-        [nonDeletableIds addObject:p.id];
-        while([p.pid isNotEqualTo:@"<null>"]){
-            NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
-            if(foundIndex != NSNotFound){
-                [nonDeletableIds addObject:p.pid];
-            }
-            foundIndex = [_clientInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
-            if(foundIndex != NSNotFound){
-                p = [_clientInsertionsQueue objectAtIndex:foundIndex];
-            }else {
-                p = [_db getElementById:p.pid];
-            }
-        }
-    }
-    for (FSElement *serverDeletionElement in _serverDeletionsQueue){
-        NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:serverDeletionElement.id]){*stop = YES;return YES;} return NO;}];
-        if (foundIndex != NSNotFound && [serverDeletionElement.hash isEqualToString:@"NULL"]){
-            [_serverDeletionsQueue removeObject:serverDeletionElement];
-            [_folderStack removeAllObjects];
-            [_folderStack push: serverDeletionElement];
-            while([_folderStack count] != 0){
-                FSElement *stackElem = [_folderStack pop];
-                NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
-                for(NSString *file in files) {
-                    //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
-                    FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
-                    BOOL isDir = NO;
-                    [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
-                    NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
-                    if (nextFoundIndex != NSNotFound) {
-                        if(isDir){
-                            [_folderStack push:elementToAdd];
-                        }
-                    }
-                    else{
-                        [_serverDeletionsQueue addObject:elementToAdd];
-                    }
-                }
-                
             }
         }
     }
