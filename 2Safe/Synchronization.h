@@ -12,5 +12,6 @@
 
 -(void)getServerQueues;
 -(void)getClientQueues;
+-(void)startSynchronization;
 
 @end

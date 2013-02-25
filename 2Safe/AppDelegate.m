@@ -87,8 +87,9 @@
             self.lastActionTimestamp = nil;
         }
         Synchronization *sync = [[Synchronization alloc] init];
-        [sync getClientQueues];
+        //[sync getClientQueues];
         //[sync getServerQueues];
+        [sync startSynchronization];
     } else [LoginController auth];
 }
 - (void) applicationWillTerminate:(NSNotification *)notification {

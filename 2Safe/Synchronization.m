@@ -45,6 +45,19 @@
     return nil;
 }
 
+-(void) startSynchronization {
+    
+    [self getServerQueues];
+    [self getClientQueues];
+    [self resolveConflicts];
+    
+    [self performServerInsertionQueue];
+    [self performServerDeletionQueue];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+}
+
 -(void) getServerQueues {
     ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"get_events" params:@{@"after":AppDelegate.LastActionTimestamp} withToken:YES];
     [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
@@ -119,8 +132,8 @@
                 NSLog(@"move:%@ %@", key, [_serverMoves objectForKey:key]);
             }
             
-            [self performServerInsertionQueue];
-            [self performServerDeletionQueue];
+            //[self performServerInsertionQueue];
+            //[self performServerDeletionQueue];
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
@@ -170,8 +183,8 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 -(void)resolveConflicts{
@@ -180,6 +193,7 @@
         [_folderStack removeAllObjects];
         if(foundIndex != NSNotFound && [clientInsertionElement.hash isEqualToString:@"NULL"]){
             //TODO: Delete folder from serverInsertions when conflict appears or not?
+            [_serverInsertionsQueue removeObjectAtIndex:foundIndex];
             [_folderStack push: clientInsertionElement];
             while([_folderStack count] != 0){
                 FSElement *stackElem = [_folderStack pop];
