@@ -180,10 +180,12 @@
         NSArray *dir = [openDlg URLs];
         NSURL *durl = [dir objectAtIndex:0];
         if (!_downloadFiles) {
-            NSError *e;
-            [[NSFileManager defaultManager] removeItemAtPath:[durl path] error:nil];
-            [[NSFileManager defaultManager] moveItemAtPath:self.rootFolderPath toPath:[durl path] error:&e];
-            if (e) NSLog(@"%@", [e localizedDescription]);
+            if (self.rootFolderPath) {
+                NSError *e;
+                [[NSFileManager defaultManager] removeItemAtPath:[durl path] error:nil];
+                [[NSFileManager defaultManager] moveItemAtPath:self.rootFolderPath toPath:[durl path] error:&e];
+                if (e) NSLog(@"%@", [e localizedDescription]);
+            }
         }
         else {
             self.rootFolderPath = [durl path];
