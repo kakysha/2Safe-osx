@@ -194,7 +194,7 @@
 }
 
 - (void) downloadAllFiles {
-    NSLog(@"downloading all files for %@ into %@", self.account, self.rootFolderPath);
+    //TODO: download all files here
 }
 
 - (BOOL) loadConfigForAccount {
