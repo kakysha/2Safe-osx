@@ -51,7 +51,7 @@
 
 //Open preferences window
 - (IBAction)openPreferences:(id)sender {
-    
+    [_app chooseRootFolderAndDownloadFiles:NO];
 }
 
 //Open help window

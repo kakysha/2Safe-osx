@@ -26,6 +26,7 @@
 @property NSString *used_space;
 
 - (void) start;
+- (void) chooseRootFolderAndDownloadFiles:(BOOL)_downloadFiles;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;

@@ -1478,7 +1478,6 @@
 							<string key="NSFrame">{{124, 11}, {162, 37}}</string>
 							<reference key="NSSuperview" ref="439893737"/>
 							<reference key="NSWindow"/>
-							<reference key="NSNextKeyView"/>
 							<string key="NSReuseIdentifierKey">_NS:1535</string>
 							<bool key="NSEnabled">YES</bool>
 							<object class="NSTextFieldCell" key="NSCell" id="586351982">
@@ -1575,7 +1574,7 @@
 					</object>
 					<object class="NSMenuItem" id="579099697">
 						<reference key="NSMenu" ref="697846154"/>
-						<string key="NSTitle">Preferences</string>
+						<string key="NSTitle">Choose 2safe folder</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSMnemonicLoc">2147483647</int>
 						<reference key="NSOnImage" ref="35465992"/>
@@ -4423,7 +4422,7 @@
 			<nil key="activeLocalization"/>
 			<dictionary class="NSMutableDictionary" key="localizations"/>
 			<nil key="sourceID"/>
-			<int key="maxID">888</int>
+			<int key="maxID">890</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<array class="NSMutableArray" key="referencedPartialClassDescriptions">

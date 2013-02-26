@@ -31,7 +31,14 @@
 - (void) setRootFolderId:(NSString *)rootFolderId {
     _rootFolderId = rootFolderId;
 }
-@synthesize rootFolderPath;
+@synthesize rootFolderPath = _rootFolderPath;
+- (NSString *) rootFolderPath {
+    return _rootFolderPath;
+}
+- (void) setRootFolderPath:(NSString *)rootFolderPath {
+    _rootFolderPath = rootFolderPath;
+    [self saveConfigForAccount];
+}
 @synthesize trashFolderId = _trashFolderId;
 - (NSString *) trashFolderId {
     if (_trashFolderId) return _trashFolderId;
@@ -150,27 +157,53 @@
         if (![self loadConfigForAccount]) {
             NSLog(@"New user %@", self.account);
             [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
-            self.rootFolderPath = @"/Users/dan/Downloads/2safe/";
             self.rootFolderId = nil;
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
-            //TODO: initialize root folder & download files from server
+            [self chooseRootFolderAndDownloadFiles:YES];
+        } else {
+            Synchronization *sync = [[Synchronization alloc] init];
+            [sync getClientQueues];
+            [sync getServerQueues];
+            //[sync startSynchronization];
         }
-        
-        Synchronization *sync = [[Synchronization alloc] init];
-        [sync getClientQueues];
-        [sync getServerQueues];
-        //[sync startSynchronization];
     } else [LoginController auth];
+}
+
+- (void) chooseRootFolderAndDownloadFiles:(BOOL)_downloadFiles {
+    NSOpenPanel *openDlg = [NSOpenPanel openPanel];
+    [openDlg setCanChooseFiles:NO];
+    [openDlg setCanChooseDirectories:YES];
+    [openDlg setCanCreateDirectories:YES];
+    if ([openDlg runModal] == NSOKButton )
+    {
+        NSArray *dir = [openDlg URLs];
+        NSURL *durl = [dir objectAtIndex:0];
+        if (!_downloadFiles) {
+            NSError *e;
+            [[NSFileManager defaultManager] removeItemAtPath:[durl path] error:nil];
+            [[NSFileManager defaultManager] moveItemAtPath:self.rootFolderPath toPath:[durl path] error:&e];
+            if (e) NSLog(@"%@", [e localizedDescription]);
+        }
+        else {
+            self.rootFolderPath = [durl path];
+            [self downloadAllFiles];
+        }
+        self.rootFolderPath = [durl path];
+    }
+}
+
+- (void) downloadAllFiles {
+    NSLog(@"downloading all files for %@ into %@", self.account, self.rootFolderPath);
 }
 
 - (BOOL) loadConfigForAccount {
     NSDictionary *accountData = [[NSUserDefaults standardUserDefaults] valueForKey:self.account];
-    self.rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
+    _rootFolderPath = [accountData valueForKey:@"rootFolderPath"];
     self.rootFolderId = [accountData valueForKey:@"rootFolderId"];
     self.trashFolderId = [accountData valueForKey:@"trashFolderId"];
     _lastActionTimestamp = [accountData valueForKey:@"lastActionTimestamp"];
-    return rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
+    return _rootFolderPath && [[NSFileManager defaultManager] fileExistsAtPath:_rootFolderPath] && _rootFolderId && _trashFolderId && _lastActionTimestamp && [Database isDbExistsForAccount:self.account];
 }
 - (void) saveConfigForAccount {
     [[NSUserDefaults standardUserDefaults] setObject:self.account forKey:@"account"];
