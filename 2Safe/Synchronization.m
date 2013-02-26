@@ -394,12 +394,14 @@
                                     if (!e) {
                                         childEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
                                         [_db insertElement:childEl];
+                                        _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                                     } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
                                 }];
                             }
                         }
                     } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
                 } synchronous:YES];
+                _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
             }
         } else {
             ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
@@ -410,6 +412,7 @@
                     else {
                         fse.id = [[response valueForKey:@"file"] valueForKey:@"id"];
                         [_db insertElement:fse];
+                        _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                     }
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
@@ -424,6 +427,7 @@
             [delDirectory performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                 if (!e) {
                     [_db deleteElementById:fse.id];
+                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         } else { // file
@@ -431,6 +435,7 @@
             [delFile performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                 if (!e) {
                     [_db deleteElementById:fse.id];
+                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         }

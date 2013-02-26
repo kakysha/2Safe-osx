@@ -157,6 +157,7 @@
         if (![self loadConfigForAccount]) {
             NSLog(@"New user %@", self.account);
             [[NSFileManager defaultManager] removeItemAtPath:[Database dbFileForAccount:self.account] error:nil];
+            [Database databaseForAccount:self.account];
             self.rootFolderId = nil;
             self.trashFolderId = nil;
             self.lastActionTimestamp = nil;
