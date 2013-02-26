@@ -55,7 +55,10 @@
 }
 
 //Open help window
-- (IBAction)openHelp:(id)sender {
+- (IBAction)login_logout:(id)sender {
+    if (_app.account) {
+        [_app logout];
+    } else [_app start];
 }
 
 //QUIT Application

@@ -1582,7 +1582,7 @@
 					</object>
 					<object class="NSMenuItem" id="992074578">
 						<reference key="NSMenu" ref="697846154"/>
-						<string key="NSTitle">Help</string>
+						<string key="NSTitle">Login</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSMnemonicLoc">2147483647</int>
 						<reference key="NSOnImage" ref="35465992"/>
@@ -2419,6 +2419,28 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBBindingConnection" key="connection">
+						<string key="label">title: account</string>
+						<reference key="source" ref="992074578"/>
+						<reference key="destination" ref="976324537"/>
+						<object class="NSNibBindingConnector" key="connector">
+							<reference key="NSSource" ref="992074578"/>
+							<reference key="NSDestination" ref="976324537"/>
+							<string key="NSLabel">title: account</string>
+							<string key="NSBinding">title</string>
+							<string key="NSKeyPath">account</string>
+							<dictionary key="NSOptions">
+								<string key="NSMultipleValuesPlaceholder">Login</string>
+								<string key="NSNoSelectionPlaceholder">Login</string>
+								<string key="NSNotApplicablePlaceholder">Login</string>
+								<string key="NSNullPlaceholder">Login</string>
+							</dictionary>
+							<int key="NSNibBindingConnectorVersion">2</int>
+						</object>
+					</object>
+					<int key="connectionID">897</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBBindingConnection" key="connection">
 						<string key="label">title: used_space</string>
 						<reference key="source" ref="1001147541"/>
 						<reference key="destination" ref="976324537"/>
@@ -2474,19 +2496,19 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBActionConnection" key="connection">
-						<string key="label">openHelp:</string>
-						<reference key="source" ref="759813679"/>
-						<reference key="destination" ref="992074578"/>
-					</object>
-					<int key="connectionID">807</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
 						<string key="label">quit:</string>
 						<reference key="source" ref="759813679"/>
 						<reference key="destination" ref="280677868"/>
 					</object>
 					<int key="connectionID">808</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">login_logout:</string>
+						<reference key="source" ref="759813679"/>
+						<reference key="destination" ref="992074578"/>
+					</object>
+					<int key="connectionID">898</int>
 				</object>
 			</array>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -4422,7 +4444,7 @@
 			<nil key="activeLocalization"/>
 			<dictionary class="NSMutableDictionary" key="localizations"/>
 			<nil key="sourceID"/>
-			<int key="maxID">890</int>
+			<int key="maxID">898</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<array class="NSMutableArray" key="referencedPartialClassDescriptions">
@@ -4520,19 +4542,19 @@
 					<string key="className">SystemTrayController</string>
 					<string key="superclassName">NSObject</string>
 					<dictionary class="NSMutableDictionary" key="actions">
+						<string key="login_logout:">id</string>
 						<string key="openFolder:">id</string>
-						<string key="openHelp:">id</string>
 						<string key="openPreferences:">id</string>
 						<string key="openWebSite:">id</string>
 						<string key="quit:">id</string>
 					</dictionary>
 					<dictionary class="NSMutableDictionary" key="actionInfosByName">
-						<object class="IBActionInfo" key="openFolder:">
-							<string key="name">openFolder:</string>
+						<object class="IBActionInfo" key="login_logout:">
+							<string key="name">login_logout:</string>
 							<string key="candidateClassName">id</string>
 						</object>
-						<object class="IBActionInfo" key="openHelp:">
-							<string key="name">openHelp:</string>
+						<object class="IBActionInfo" key="openFolder:">
+							<string key="name">openFolder:</string>
 							<string key="candidateClassName">id</string>
 						</object>
 						<object class="IBActionInfo" key="openPreferences:">

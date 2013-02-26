@@ -24,7 +24,7 @@
 - (IBAction)openFolder:(id)sender;
 - (IBAction)openWebSite:(id)sender;
 - (IBAction)openPreferences:(id)sender;
-- (IBAction)openHelp:(id)sender;
+- (IBAction)login_logout:(id)sender;
 - (IBAction)quit:(id)sender;
 
 @end

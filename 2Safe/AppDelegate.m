@@ -87,7 +87,7 @@
     [self saveConfigForAccount];
 }
 
-- (void) start {    
+- (void) start {
     if (!self.account) self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
     if (!self.token) self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
     if (self.account && self.token) {
@@ -114,12 +114,13 @@
             self.lastActionTimestamp = nil;
             [self chooseRootFolderAndDownloadFiles:YES];
         } else {
+            [self saveConfigForAccount];
             Synchronization *sync = [[Synchronization alloc] init];
             [sync getClientQueues];
             [sync getServerQueues];
             //[sync startSynchronization];
         }
-    } else [LoginController auth];
+    } else [LoginController authAndRestart];
 }
 
 - (void) chooseRootFolderAndDownloadFiles:(BOOL)_downloadFiles {
@@ -149,6 +150,12 @@
 
 - (void) downloadAllFiles {
     //TODO: download all files here
+}
+
+- (void) logout {
+    self.account = nil;
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"account"];
+    [self start];
 }
 
 - (BOOL) loadConfigForAccount {

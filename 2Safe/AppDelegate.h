@@ -27,6 +27,7 @@
 
 - (void) start;
 - (void) chooseRootFolderAndDownloadFiles:(BOOL)_downloadFiles;
+- (void) logout;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;
