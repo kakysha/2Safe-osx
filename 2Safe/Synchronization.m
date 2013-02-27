@@ -223,7 +223,7 @@
 }
 
 -(void)resolveConflicts{
-    // firstly find conflicts in insertions and resolve them
+    // Insertions VS. Insertions
     for(FSElement *clientInsertionElement in _clientInsertionsQueue){
         NSUInteger foundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:clientInsertionElement.name] && [[obj pid] isEqualToString:clientInsertionElement.pid]){*stop = YES;return YES;} return NO;}];
         [_folderStack removeAllObjects];
@@ -300,7 +300,8 @@
             }
         }
     }
-
+    
+    // ClientDeletions VS. ServerInsertions
     NSMutableArray *nonDeletableIds = [NSMutableArray arrayWithCapacity:50];
     for(FSElement *serverInsertionElement in _serverInsertionsQueue){
         FSElement *p = serverInsertionElement;
@@ -324,30 +325,31 @@
             if (foundIndex != NSNotFound && [clientDeletionElement.hash isEqualToString:@"NULL"]){
                 [_clientDeletionsQueue removeObject:clientDeletionElement];
                 [_folderStack removeAllObjects];
-                    [_folderStack push: clientDeletionElement];
-                    while([_folderStack count] != 0){
-                        FSElement *stackElem = [_folderStack pop];
-                        NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
-                        for(NSString *file in files) {
-                            //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
-                            FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
-                            BOOL isDir = NO;
-                            [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
-                            NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
-                            if (nextFoundIndex != NSNotFound) {
-                                if(isDir){
-                                    [_folderStack push:elementToAdd];
-                                }
-                            }
-                            else{
-                                [_clientDeletionsQueue addObject:elementToAdd];
-                            }
+                //TODO: delete folder from DB & ????
+                [_folderStack push: clientDeletionElement];
+                while([_folderStack count] != 0){
+                    FSElement *stackElem = [_folderStack pop];
+                    NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
+                    for(NSString *file in files) {
+                        //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
+                        FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
+                        BOOL isDir = NO;
+                        [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
+                        NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
+                        if (nextFoundIndex != NSNotFound) {
+                            if(isDir) [_folderStack push:elementToAdd];
                         }
-                        
+                        else {
+                            [_clientDeletionsQueue addObject:elementToAdd];
+                        }
                     }
+                }
+            } else if (foundIndex != NSNotFound) { //file
+                [_clientDeletionsQueue removeObject:clientDeletionElement];
             }
         }
     }
+    
     [nonDeletableIds removeAllObjects];
     NSMutableArray *nonDeletableObjects = [[NSMutableArray alloc] initWithCapacity:50];
     for(FSElement *clientInsertionElement in _clientInsertionsQueue){
@@ -542,7 +544,7 @@
         } else {
             if ([fse.hash isEqualToString:@"NULL"]) {
                 //create dir
-                [_fm createDirectoryAtPath:fse.filePath withIntermediateDirectories:NO attributes:nil error:nil];
+                [_fm createDirectoryAtPath:fse.filePath withIntermediateDirectories:YES attributes:nil error:nil];
                 [_db insertElement:fse];
             } else {
                 ApiRequest *fileDownloadRequest = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id" : fse.id} withToken:YES];
