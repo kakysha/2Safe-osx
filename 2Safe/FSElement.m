@@ -13,18 +13,25 @@
 
 @implementation FSElement
 
-@synthesize filePath;
+@synthesize filePath = _filePath;
+- (NSString *) filePath {
+    return _filePath;
+}
+- (void) setFilePath:(NSString *)filePath {
+    _filePath = filePath;
+    _name = _name = [filePath lastPathComponent];
+}
 @synthesize id;
 @synthesize name = _name;
 - (NSString *)name {
     if (_name) return _name;
-    _name = [filePath lastPathComponent];
+    _name = [self.filePath lastPathComponent];
     return _name;
 }
 @synthesize mdate = _mdate;
 - (NSString *)mdate {
     if (_mdate) return _mdate;
-    _mdate = [FSElement getModificationDateForFile:filePath];
+    _mdate = [FSElement getModificationDateForFile:self.filePath];
     return _mdate;
 }
 @synthesize pid;
@@ -32,9 +39,9 @@
 - (NSString *)hash {
     if (_hash) return _hash;
     BOOL isDir = NO;
-    [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir];
+    [[NSFileManager defaultManager] fileExistsAtPath:self.filePath isDirectory:&isDir];
     if (isDir) return @"NULL";
-    _hash = [FSElement getMD5HashForFile:filePath];
+    _hash = [FSElement getMD5HashForFile:self.filePath];
     return _hash;
 }
 
@@ -43,8 +50,7 @@
         NSLog(@"File %@ is not readable", path);
         return nil;
     }
-    filePath = path;
-    _name = [path lastPathComponent];
+    self.filePath = path;
     _mdate = [FSElement getModificationDateForFile:path];
     return self;
 }

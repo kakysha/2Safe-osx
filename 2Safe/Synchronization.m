@@ -51,10 +51,10 @@
 
 -(void) startSynchronization {
     [self getClientQueues];
-    [self getServerQueues];
-    /*[self resolveConflicts];
+    //clientQueues will invoke obtaining serverQueues
+    //serverQueues will invoke obtaining conflicts
     
-    [self performServerInsertionQueue];
+    /*[self performServerInsertionQueue];
     [self performServerDeletionQueue];
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
@@ -136,8 +136,9 @@
                 NSLog(@"move:%@ %@", key, [_serverMoves objectForKey:key]);
             }
             
-            [self performServerInsertionQueue];
-            [self performServerDeletionQueue];
+            [self resolveConflicts];
+            //[self performServerInsertionQueue];
+            //[self performServerDeletionQueue];
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
@@ -225,84 +226,88 @@
         if (bdfiles.count != 0)
             for(FSElement *fse in bdfiles) [_clientDeletionsQueue addObject:fse];
     }
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+    [self getServerQueues];
+    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 -(void)resolveConflicts{
+    // firstly find conflicts in insertions and resolve them
     for(FSElement *clientInsertionElement in _clientInsertionsQueue){
         NSUInteger foundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:clientInsertionElement.name] && [[obj pid] isEqualToString:clientInsertionElement.pid]){*stop = YES;return YES;} return NO;}];
         [_folderStack removeAllObjects];
-        if(foundIndex != NSNotFound && [clientInsertionElement.hash isEqualToString:@"NULL"]){
-            //TODO: Delete folder from serverInsertions when conflict appears or not?
-            [_serverInsertionsQueue removeObjectAtIndex:foundIndex];
-            [_folderStack push: clientInsertionElement];
-            while([_folderStack count] != 0){
-                FSElement *stackElem = [_folderStack pop];
-                [_db insertElement:stackElem];
-                NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
-                for(NSString *file in files) {
-                    NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
-                    FSElement *elementToAdd = [[FSElement alloc] initWithPath:path];
-                    elementToAdd.pid = stackElem.id;
-                    BOOL isDir = NO;
-                    [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
-                    NSUInteger nextFoundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:elementToAdd.name] && [[obj pid] isEqualTo:[[_serverInsertionsQueue objectAtIndex:foundIndex] id]]){*stop = YES;return YES;} return NO;}];
-                    if (nextFoundIndex != NSNotFound) {
-                        FSElement *serverInsertionElement = [_serverInsertionsQueue objectAtIndex:nextFoundIndex];
-                        if(isDir){
-                            [_serverInsertionsQueue removeObject:serverInsertionElement];
-                            [_clientInsertionsQueue removeObject:elementToAdd];
-                            elementToAdd.id = serverInsertionElement.id;
-                            [_folderStack push:elementToAdd];
-                        } else {
-                            __block NSString *sInsHash;
-                            ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
-                            [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
-                                if (!e) {
-                                    for(id obj in [response objectForKey:@"object"]){
-                                        if([[obj key] isEqualToString:@"chksum"]){
-                                            sInsHash = [obj value];
-                                        }else continue;
-                                    }
-                                    serverInsertionElement.hash = sInsHash;
-                                    if([elementToAdd.hash isEqualTo:sInsHash]){
-                                        [_serverInsertionsQueue removeObject:serverInsertionElement];
-                                        [_clientInsertionsQueue removeObject:elementToAdd];
-                                        elementToAdd.id = serverInsertionElement.id;
-                                        [_db insertElement:elementToAdd];
-                                    }
-                                    
-                                    
-                                }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
-                            }];
+        if(foundIndex != NSNotFound){
+            FSElement *serverInsertionElement = [_serverInsertionsQueue objectAtIndex:foundIndex];
+            //folder
+            if ([clientInsertionElement.hash isEqualToString:@"NULL"]) {
+                
+                [_serverInsertionsQueue removeObjectAtIndex:foundIndex];
+                [_clientInsertionsQueue removeObject:clientInsertionElement]; //as we are deleting folder from clientQueue, we must add all of its children to the queue
+                clientInsertionElement.id = serverInsertionElement.id;
+                [_folderStack push: clientInsertionElement];
+                
+                while([_folderStack count] != 0){
+                    
+                    FSElement *stackElem = [_folderStack pop];
+                    [_db insertElement:stackElem];
+                    NSArray *files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
+                    
+                    for(NSString *file in files) {
+                        
+                        FSElement *clientEl = [[FSElement alloc] initWithPath:[stackElem.filePath stringByAppendingPathComponent:file]];
+                        clientEl.pid = stackElem.id;
+                        [_clientInsertionsQueue addObject:clientEl];
+                        
+                        BOOL isDir = NO;
+                        [_fm fileExistsAtPath:clientEl.filePath isDirectory:&isDir];
+                        
+                        foundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.name isEqualToString:clientEl.name] && [obj.pid isEqualTo:serverInsertionElement.id]){*stop = YES;return YES;} return NO;}];
+                        
+                        if (foundIndex != NSNotFound) {
+                            serverInsertionElement = [_serverInsertionsQueue objectAtIndex:foundIndex];
+                            if(isDir){
+                                [_serverInsertionsQueue removeObject:serverInsertionElement];
+                                [_clientInsertionsQueue removeObject:clientEl];
+                                clientEl.id = serverInsertionElement.id;
+                                [_folderStack push:clientEl];
+                            } else {
+                                ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
+                                [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                                    if (!e) {
+                                        serverInsertionElement.hash = [[response objectForKey:@"object"] objectForKey:@"chksum"];
+                                        if([clientEl.hash isEqualTo:serverInsertionElement.hash]){
+                                            [_serverInsertionsQueue removeObject:serverInsertionElement];
+                                            [_clientInsertionsQueue removeObject:clientEl];
+                                            clientEl.id = serverInsertionElement.id;
+                                            [_db insertElement:clientEl];
+                                        } else {
+                                            [self resolveConflictForServerEl:serverInsertionElement andClientEl:clientEl];
+                                        }
+                                    } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+                                }];
+                            }
+                                
                         }
-                            
                     }
                 }
+            // file
+            } else {
+                ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
+                [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+                    if (!e) {
+                        serverInsertionElement.hash = [[response objectForKey:@"object"] objectForKey:@"chksum"];
+                        if([clientInsertionElement.hash isEqualTo:serverInsertionElement.hash]){
+                            [_serverInsertionsQueue removeObject:serverInsertionElement];
+                            [_clientInsertionsQueue removeObject:clientInsertionElement];
+                            clientInsertionElement.id = serverInsertionElement.id;
+                            [_db insertElement:clientInsertionElement];
+                        } else {
+                            [self resolveConflictForServerEl:serverInsertionElement andClientEl:clientInsertionElement];
+                        }
+                    } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
+                }];
 
             }
-        }
-        else if (foundIndex != NSNotFound){
-            FSElement *serverInsertionElement = [_serverInsertionsQueue objectAtIndex:foundIndex];
-            __block NSString *sInsHash;
-            ApiRequest *getHashRequest = [[ApiRequest alloc] initWithAction:@"get_props" params:@{@"id":serverInsertionElement.id} withToken:YES];
-            [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
-                if (!e) {
-                    for(id obj in [response objectForKey:@"object"]){
-                        if([[obj key] isEqualToString:@"chksum"]){
-                            sInsHash = [obj value];
-                        }else continue;
-                    }
-                    serverInsertionElement.hash = sInsHash;
-                    if([clientInsertionElement.hash isEqualTo:sInsHash]){
-                        [_serverInsertionsQueue removeObject:serverInsertionElement];
-                        clientInsertionElement.id = serverInsertionElement.id;
-                        [_db insertElement:clientInsertionElement];
-                        [_clientInsertionsQueue removeObject:clientInsertionElement];
-                    }
-                }else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
-            }];
         }
     }
 
@@ -396,6 +401,43 @@
             }
         }
     }
+}
+
+- (void) resolveConflictForServerEl:(FSElement *)sEl andClientEl:(FSElement *)clEl {
+    NSLog(@"Conflicted file: %@", clEl.filePath);
+    NSString *time = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970]];
+    NSString *fName = [[clEl.filePath lastPathComponent] stringByDeletingPathExtension];
+    NSString *fExt = [[clEl.filePath lastPathComponent] pathExtension];
+    NSString *fFolder = [clEl.filePath stringByDeletingLastPathComponent];
+    
+    sEl.filePath = [fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@_server_%@.%@", fName, time, fExt]];
+    clEl.filePath = [fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@_client_%@.%@", fName, time, fExt]];
+    
+    //rename on server
+    ApiRequest *fileRenameRequest = [[ApiRequest alloc] initWithAction:@"move_file" params:@{@"id" : sEl.id, @"dir_id": sEl.pid, @"file_name": sEl.name} withToken:YES];
+    [fileRenameRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
+        if (!e) {
+            sEl.id = [response objectForKey:@"id"];
+        } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+    } synchronous:YES];
+    //download from server
+    ApiRequest *fileDownloadRequest = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id" : sEl.id} withToken:YES];
+    [fileDownloadRequest performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:sEl.filePath append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
+        if (!e) {
+            [_db insertElement:sEl];
+        } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+    }];
+    
+    //rename on client
+    [_fm moveItemAtPath:[fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.%@", fName, fExt]] toPath:clEl.filePath error:nil];
+    //upload to server
+    ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : clEl.pid , @"file" : clEl, @"overwrite":@"1"} withToken:YES];
+    [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+        if (!e) {
+            clEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
+            [_db insertElement:clEl];
+        } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
+    }];
 }
 
 -(void) performClientInsertionQueue{
