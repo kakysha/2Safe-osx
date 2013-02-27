@@ -410,16 +410,9 @@
     NSString *fExt = [[clEl.filePath lastPathComponent] pathExtension];
     NSString *fFolder = [clEl.filePath stringByDeletingLastPathComponent];
     
-    sEl.filePath = [fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@_server_%@.%@", fName, time, fExt]];
+    sEl.filePath = clEl.filePath;
     clEl.filePath = [fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@_client_%@.%@", fName, time, fExt]];
     
-    //rename on server
-    ApiRequest *fileRenameRequest = [[ApiRequest alloc] initWithAction:@"move_file" params:@{@"id" : sEl.id, @"dir_id": sEl.pid, @"file_name": sEl.name} withToken:YES];
-    [fileRenameRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
-        if (!e) {
-            sEl.id = [response objectForKey:@"id"];
-        } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
-    } synchronous:YES];
     //download from server
     ApiRequest *fileDownloadRequest = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id" : sEl.id} withToken:YES];
     [fileDownloadRequest performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:sEl.filePath append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
@@ -438,6 +431,9 @@
             [_db insertElement:clEl];
         } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
     }];
+    
+    if ([_timeStamps objectForKey:sEl.id])
+        _app.lastActionTimestamp = [NSString stringWithFormat:@"%@",[_timeStamps objectForKey:sEl.id]];
 }
 
 -(void) performClientInsertionQueue{
