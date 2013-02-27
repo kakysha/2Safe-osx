@@ -10,7 +10,8 @@
 
 @interface Synchronization : NSObject
 
--(void)getServerQueues;
--(void)getClientQueues;
+-(void) getServerQueues;
+-(void) getClientQueues;
+- (void) downloadAllFiles;
 
 @end

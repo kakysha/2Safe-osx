@@ -143,6 +143,44 @@
     }];
 }
 
+- (void) downloadAllFiles {
+    FSElement *root = [[FSElement alloc] initWithPath:_folder];
+    root.id = _app.rootFolderId;
+    [_folderStack push:root];
+    while([_folderStack count] != 0){
+        FSElement *stackElem = [_folderStack pop];
+        ApiRequest *getEvents = [[ApiRequest alloc] initWithAction:@"list_dir" params:@{@"dir_id" : stackElem.id} withToken:YES];
+        [getEvents performRequestWithBlock:^(NSDictionary *response, NSError *e) {
+            if (!e) {
+                NSArray *list_dirs = [response objectForKey:@"list_dirs"];
+                NSArray *list_files = [response objectForKey:@"list_files"];
+                for (NSDictionary *dir in list_dirs) {
+                    if ([dir objectForKey:@"special_dir"] || [dir objectForKey:@"is_trash"]) continue; //its a special (trash, shared) or deleted folder
+                    FSElement *el = [[FSElement alloc] init];
+                    el.id = [dir objectForKey:@"id"];
+                    el.name = [dir objectForKey:@"name"];
+                    el.pid = stackElem.id;
+                    el.hash = @"NULL"; //directory
+                    [_serverInsertionsQueue addObject:el];
+                    [_folderStack push:el];
+                }
+                for (NSDictionary *file in list_files) {
+                    if ([file objectForKey:@"is_trash"]) continue; //its a deleted file
+                    FSElement *el = [[FSElement alloc] init];
+                    el.id = [file objectForKey:@"id"];
+                    el.name = [file objectForKey:@"name"];
+                    el.pid = stackElem.id;
+                    el.hash = [file objectForKey:@"chksum"];
+                    el.mdate = [file objectForKey:@"mdate"];
+                    [_serverInsertionsQueue addObject:el];
+                }
+            }
+        } synchronous:YES];
+    }
+    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+    [self performServerInsertionQueue];
+}
+
 -(void) removeChildrenFromQueueForElement:(FSElement *)el {
     for (int i = 0; i < _serverInsertionsQueue.count; i++){
         FSElement *obj = [_serverInsertionsQueue objectAtIndex:i];
@@ -412,8 +450,8 @@
                     else {
                         fse.id = [[response valueForKey:@"file"] valueForKey:@"id"];
                         [_db insertElement:fse];
-                        _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                     }
+                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         }

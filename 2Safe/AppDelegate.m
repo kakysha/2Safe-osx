@@ -135,6 +135,7 @@
         if (!_downloadFiles) {
             if (self.rootFolderPath) {
                 NSError *e;
+                //TODO: merge directories instead of removing one
                 [[NSFileManager defaultManager] removeItemAtPath:[durl path] error:nil];
                 [[NSFileManager defaultManager] moveItemAtPath:self.rootFolderPath toPath:[durl path] error:&e];
                 if (e) NSLog(@"%@", [e localizedDescription]);
@@ -150,6 +151,9 @@
 
 - (void) downloadAllFiles {
     //TODO: download all files here
+    Synchronization *sync = [[Synchronization alloc] init];
+    [sync downloadAllFiles];
+    NSLog(@"All files are downloaded...start sync");
 }
 
 - (void) logout {
