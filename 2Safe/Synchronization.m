@@ -53,13 +53,6 @@
     [self getClientQueues];
     //clientQueues will invoke obtaining serverQueues
     //serverQueues will invoke obtaining conflicts
-    
-    /*[self performServerInsertionQueue];
-    [self performServerDeletionQueue];
-    
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
-     */
 }
 
 -(void) getServerQueues {
@@ -137,8 +130,6 @@
             }
             
             [self resolveConflicts];
-            //[self performServerInsertionQueue];
-            //[self performServerDeletionQueue];
             
         } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
     }];
@@ -275,16 +266,16 @@
                                 [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
                                     if (!e) {
                                         serverInsertionElement.hash = [[response objectForKey:@"object"] objectForKey:@"chksum"];
+                                        [_serverInsertionsQueue removeObject:serverInsertionElement];
+                                        [_clientInsertionsQueue removeObject:clientEl];
                                         if([clientEl.hash isEqualTo:serverInsertionElement.hash]){
-                                            [_serverInsertionsQueue removeObject:serverInsertionElement];
-                                            [_clientInsertionsQueue removeObject:clientEl];
                                             clientEl.id = serverInsertionElement.id;
                                             [_db insertElement:clientEl];
                                         } else {
                                             [self resolveConflictForServerEl:serverInsertionElement andClientEl:clientEl];
                                         }
                                     } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
-                                }];
+                                } synchronous:YES];
                             }
                                 
                         }
@@ -296,17 +287,16 @@
                 [getHashRequest performRequestWithBlock:^(NSDictionary *response, NSError *e){
                     if (!e) {
                         serverInsertionElement.hash = [[response objectForKey:@"object"] objectForKey:@"chksum"];
+                        [_serverInsertionsQueue removeObject:serverInsertionElement];
+                        [_clientInsertionsQueue removeObject:clientInsertionElement];
                         if([clientInsertionElement.hash isEqualTo:serverInsertionElement.hash]){
-                            [_serverInsertionsQueue removeObject:serverInsertionElement];
-                            [_clientInsertionsQueue removeObject:clientInsertionElement];
                             clientInsertionElement.id = serverInsertionElement.id;
                             [_db insertElement:clientInsertionElement];
                         } else {
                             [self resolveConflictForServerEl:serverInsertionElement andClientEl:clientInsertionElement];
                         }
                     } else NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
-                }];
-
+                } synchronous:YES];
             }
         }
     }
@@ -401,6 +391,12 @@
             }
         }
     }
+    
+    [self performServerInsertionQueue];
+    [self performServerDeletionQueue];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 - (void) resolveConflictForServerEl:(FSElement *)sEl andClientEl:(FSElement *)clEl {
@@ -410,30 +406,23 @@
     NSString *fExt = [[clEl.filePath lastPathComponent] pathExtension];
     NSString *fFolder = [clEl.filePath stringByDeletingLastPathComponent];
     
-    sEl.filePath = clEl.filePath;
+    sEl.filePath = [NSString stringWithString:clEl.filePath];
     clEl.filePath = [fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@_client_%@.%@", fName, time, fExt]];
+    
+    //rename on client
+    [_fm moveItemAtPath:[fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.%@", fName, fExt]] toPath:clEl.filePath error:nil];
+    //upload to server
+    [_clientInsertionsQueue addObject:clEl];
     
     //download from server
     ApiRequest *fileDownloadRequest = [[ApiRequest alloc] initWithAction:@"get_file" params:@{@"id" : sEl.id} withToken:YES];
     [fileDownloadRequest performStreamRequest:[[NSOutputStream alloc] initToFileAtPath:sEl.filePath append:NO] withBlock:^(NSData *response, NSHTTPURLResponse *h, NSError *e) {
         if (!e) {
             [_db insertElement:sEl];
+            if ([_timeStamps objectForKey:sEl.id])
+                _app.lastActionTimestamp = [NSString stringWithFormat:@"%@",[_timeStamps objectForKey:sEl.id]];
         } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
     }];
-    
-    //rename on client
-    [_fm moveItemAtPath:[fFolder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.%@", fName, fExt]] toPath:clEl.filePath error:nil];
-    //upload to server
-    ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : clEl.pid , @"file" : clEl, @"overwrite":@"1"} withToken:YES];
-    [fileUploadRequest performRequestWithBlock:^(NSDictionary *response, NSError *e) {
-        if (!e) {
-            clEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
-            [_db insertElement:clEl];
-        } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
-    }];
-    
-    if ([_timeStamps objectForKey:sEl.id])
-        _app.lastActionTimestamp = [NSString stringWithFormat:@"%@",[_timeStamps objectForKey:sEl.id]];
 }
 
 -(void) performClientInsertionQueue{
