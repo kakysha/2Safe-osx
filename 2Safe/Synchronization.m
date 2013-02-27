@@ -50,16 +50,16 @@
 }
 
 -(void) startSynchronization {
-    
-    [self getServerQueues];
     [self getClientQueues];
-    [self resolveConflicts];
+    [self getServerQueues];
+    /*[self resolveConflicts];
     
     [self performServerInsertionQueue];
     [self performServerDeletionQueue];
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+     */
 }
 
 -(void) getServerQueues {

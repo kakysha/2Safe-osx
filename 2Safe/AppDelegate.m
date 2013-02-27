@@ -13,7 +13,9 @@
 #import "ApiRequest.h"
 #import "LoginController.h"
 
-@implementation AppDelegate
+@implementation AppDelegate {
+    Synchronization *_sync;
+}
 
 @synthesize persistentStoreCoordinator = _persistentStoreCoordinator;
 @synthesize managedObjectModel = _managedObjectModel;
@@ -114,10 +116,9 @@
             self.lastActionTimestamp = nil;
             [self chooseRootFolderAndDownloadFiles:YES];
         } else {
+            _sync = [[Synchronization alloc] init];
             [self saveConfigForAccount];
-            Synchronization *sync = [[Synchronization alloc] init];
-            [sync getClientQueues];
-            [sync getServerQueues];
+            [_sync startSynchronization];
             //[sync startSynchronization];
         }
     } else [LoginController authAndRestart];
@@ -152,8 +153,9 @@
 - (void) downloadAllFiles {
     //TODO: download all files here
     Synchronization *sync = [[Synchronization alloc] init];
+    _sync = [[Synchronization alloc] init];
     [sync downloadAllFiles];
-    NSLog(@"All files are downloaded...start sync");
+    [_sync startSynchronization];
 }
 
 - (void) logout {
