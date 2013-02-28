@@ -177,7 +177,7 @@
 
 -(void)resolveConflicts{
     // Insertions VS. Insertions
-    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+    for(FSElement *clientInsertionElement in [_clientInsertionsQueue copy]){
         NSUInteger foundIndex = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj name] isEqualToString:clientInsertionElement.name] && [[obj pid] isEqualToString:clientInsertionElement.pid]){*stop = YES;return YES;} return NO;}];
         [_folderStack removeAllObjects];
         if(foundIndex != NSNotFound){
@@ -273,7 +273,7 @@
         }
     }
     if([nonDeletableIds count] != 0){
-        for (FSElement *clientDeletionElement in _clientDeletionsQueue){
+        for (FSElement *clientDeletionElement in [_clientDeletionsQueue copy]){
             NSUInteger foundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:clientDeletionElement.id]){*stop = YES;return YES;} return NO;}];
             if (foundIndex != NSNotFound && [clientDeletionElement.hash isEqualToString:@"NULL"]){
                 [_clientDeletionsQueue removeObject:clientDeletionElement];
@@ -320,7 +320,7 @@
     }
     
     if ([nonDeletableObjects count] != 0){
-        for (FSElement *serverDeletionElement in _serverDeletionsQueue){
+        for (FSElement *serverDeletionElement in [_serverDeletionsQueue copy]){
             NSUInteger foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj pid] isEqualToString:serverDeletionElement.pid] && [[obj name] isEqualToString:serverDeletionElement.name]){*stop = YES;return YES;} return NO;}];
             if (foundIndex != NSNotFound && [serverDeletionElement.hash isEqualToString:@"NULL"]){
                 [_serverDeletionsQueue removeObject:serverDeletionElement];
@@ -353,7 +353,8 @@
                     }
                     
                 }
-            } else {//TODO: handle files
+            } else if (foundIndex != NSNotFound) { //modified file
+                [_serverDeletionsQueue removeObject:serverDeletionElement];
             }
             [_dbDeletionsIds addObject:serverDeletionElement.id];
         }
@@ -391,7 +392,7 @@
 }
 
 - (void) removeChildrenFromClientInsertionsForElement:(FSElement *)pEl {
-    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+    for(FSElement *clientInsertionElement in [_clientInsertionsQueue copy]){
         FSElement *p = clientInsertionElement;
         while([p.pid isNotEqualTo:@"<null>"]){
             if ([p.pid isEqualToString:pEl.id])
