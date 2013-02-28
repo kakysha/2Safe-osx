@@ -409,7 +409,7 @@
             }
         } synchronous:YES];
     }
-    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+    [self updateLocalTimestamp];
     [self performServerInsertionQueue];
 }
 
@@ -457,14 +457,14 @@
                                     if (!e) {
                                         childEl.id = [[response valueForKey:@"file"] valueForKey:@"id"];
                                         [_db insertElement:childEl];
-                                        _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+                                        [self updateLocalTimestamp];
                                     } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
                                 }];
                             }
                         }
                     } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
                 } synchronous:YES];
-                _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+                [self updateLocalTimestamp];
             }
         } else {
             ApiRequest *fileUploadRequest = [[ApiRequest alloc] initWithAction:@"put_file" params:@{@"dir_id" : fse.pid , @"file" : fse, @"overwrite":@"1"} withToken:YES];
@@ -476,7 +476,7 @@
                         fse.id = [[response valueForKey:@"file"] valueForKey:@"id"];
                         [_db insertElement:fse];
                     }
-                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+                    [self updateLocalTimestamp];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         }
@@ -490,7 +490,7 @@
             [delDirectory performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                 if (!e) {
                     [_db deleteElementById:fse.id];
-                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+                    [self updateLocalTimestamp];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         } else { // file
@@ -498,29 +498,11 @@
             [delFile performRequestWithBlock:^(NSDictionary *response, NSError *e) {
                 if (!e) {
                     [_db deleteElementById:fse.id];
-                    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000.0];
+                    [self updateLocalTimestamp];
                 } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
             }];
         }
     }
-}
-
-- (NSString *) getFullFilePathForElement:(FSElement *)el {
-    NSString *filePath;
-    FSElement *parentElement = [_db getElementById:el.pid withFullFilePath:YES];
-    if (parentElement)
-        filePath = [[_folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:el.name];
-    else {
-        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:el.pid]){*stop = YES;return YES;} return NO;}];
-        if (ind != NSNotFound) {
-            parentElement = [_serverInsertionsQueue objectAtIndex:ind];
-            if (parentElement.filePath)
-                filePath = [parentElement.filePath stringByAppendingPathComponent:el.name];
-            else
-                filePath = [[self getFullFilePathForElement:parentElement] stringByAppendingPathComponent:el.name];
-        }
-    }
-    return filePath;
 }
 
 -(void) performServerInsertionQueue{
@@ -567,6 +549,28 @@
         if ([_timeStamps objectForKey:fse.id])
             _app.lastActionTimestamp = [_timeStamps objectForKey:fse.id];
     }
+}
+
+- (NSString *) getFullFilePathForElement:(FSElement *)el {
+    NSString *filePath;
+    FSElement *parentElement = [_db getElementById:el.pid withFullFilePath:YES];
+    if (parentElement)
+        filePath = [[_folder stringByAppendingPathComponent:parentElement.filePath] stringByAppendingPathComponent:el.name];
+    else {
+        NSUInteger ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:el.pid]){*stop = YES;return YES;} return NO;}];
+        if (ind != NSNotFound) {
+            parentElement = [_serverInsertionsQueue objectAtIndex:ind];
+            if (parentElement.filePath)
+                filePath = [parentElement.filePath stringByAppendingPathComponent:el.name];
+            else
+                filePath = [[self getFullFilePathForElement:parentElement] stringByAppendingPathComponent:el.name];
+        }
+    }
+    return filePath;
+}
+
+- (void) updateLocalTimestamp {
+    _app.lastActionTimestamp = [NSString stringWithFormat:@"%.f", [[NSDate date] timeIntervalSince1970] * 1000000.0];
 }
 
 BOOL isInvisible(NSString *str, BOOL isFile){
