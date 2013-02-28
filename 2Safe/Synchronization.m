@@ -325,22 +325,19 @@
             if (foundIndex != NSNotFound && [clientDeletionElement.hash isEqualToString:@"NULL"]){
                 [_clientDeletionsQueue removeObject:clientDeletionElement];
                 [_folderStack removeAllObjects];
-                //TODO: delete folder from DB & ????
                 [_folderStack push: clientDeletionElement];
                 while([_folderStack count] != 0){
                     FSElement *stackElem = [_folderStack pop];
-                    NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
-                    for(NSString *file in files) {
-                        //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
-                        FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
-                        BOOL isDir = NO;
-                        [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
-                        NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
+                    stackElem.filePath = [self getFullFilePathForElement:stackElem];
+                    [_fm createDirectoryAtPath:stackElem.filePath withIntermediateDirectories:YES attributes:nil error:nil];
+                    NSArray* files = [_db childElementsOfId:stackElem.id]; //BUG: no folder anymore, its deleted!!!!
+                    for(FSElement *file in files) {
+                        NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:file.id]){*stop = YES;return YES;} return NO;}];
                         if (nextFoundIndex != NSNotFound) {
-                            if(isDir) [_folderStack push:elementToAdd];
+                            if([file.hash isEqualToString:@"NULL"]) [_folderStack push:file];
                         }
                         else {
-                            [_clientDeletionsQueue addObject:elementToAdd];
+                            [_clientDeletionsQueue addObject:file];
                         }
                     }
                 }
