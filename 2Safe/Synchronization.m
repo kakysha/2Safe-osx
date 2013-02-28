@@ -353,10 +353,10 @@
                     }
                     
                 }
+                [_dbDeletionsIds addObject:serverDeletionElement.id];
             } else if (foundIndex != NSNotFound) { //modified file
                 [_serverDeletionsQueue removeObject:serverDeletionElement];
             }
-            [_dbDeletionsIds addObject:serverDeletionElement.id];
         }
     }
     
