@@ -21,6 +21,33 @@
 @synthesize managedObjectModel = _managedObjectModel;
 @synthesize managedObjectContext = _managedObjectContext;
 @synthesize account;
+@synthesize downloading = _downloading;
+- (long) downloading {
+    return _downloading;
+}
+- (void) setDownloading:(long)downloading {
+    _downloading = downloading;
+    self.downloadingStatus = @"@";
+}
+@synthesize uploading = _uploading;
+- (long) uploading {
+    return _uploading;
+}
+- (void) setUploading:(long)uploading {
+    _uploading = uploading;
+    self.uploadingStatus = @"@";
+}
+@synthesize uploadingStatus = _uploadingStatus;
+- (NSString *) uploadingStatus {
+    if (self.uploading > 0) return [NSString stringWithFormat:@"Uploading %ld files...", self.uploading];
+    else return nil;
+}
+- (void) setUploadingStatus:(NSString *)uploadingStatus {}
+- (NSString *) downloadingStatus {
+    if (self.downloading > 0) return [NSString stringWithFormat:@"Downloading %ld files...", self.downloading];
+    else return nil;
+}
+- (void) setDownloadingStatus:(NSString *)downloadingStatus {}
 @synthesize rootFolderId = _rootFolderId;
 - (NSString *) rootFolderId {
     if (_rootFolderId) return _rootFolderId;

@@ -24,6 +24,10 @@
 @property long long used_bytes;
 @property long long total_bytes;
 @property NSString *used_space;
+@property long downloading;
+@property long uploading;
+@property NSString *uploadingStatus;
+@property NSString *downloadingStatus;
 
 - (void) start;
 - (void) chooseRootFolderAndDownloadFiles:(BOOL)_downloadFiles;

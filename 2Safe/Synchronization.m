@@ -28,6 +28,8 @@
     NSMutableDictionary *_timeStamps;
     NSString *_folder;
     AppDelegate *_app;
+    NSNumber *_downloadingFiles;
+    NSNumber *_uploadingFiles;
 }
 
 - (id) init {

@@ -40,6 +40,10 @@ NSString *_token;
         _action = action;
         _requestparams = params;
         receivedData = [NSMutableData data];
+        if ([action isEqualToString:@"put_file"])
+            _app.uploading++;
+        if ([action isEqualToString:@"get_file"])
+            _app.downloading++;
         return self;
     } else { 
         return nil;
@@ -255,6 +259,10 @@ NSString *_token;
             responseDataBlock(nil,nil, self.error);
             break;
     }
+    if ([_action isEqualToString:@"put_file"])
+        _app.uploading--;
+    if ([_action isEqualToString:@"get_file"])
+        _app.downloading--;
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
@@ -290,6 +298,10 @@ NSString *_token;
             responseDataBlock(receivedData, self.responseHeaders, nil);
             break;
     }
+    if ([_action isEqualToString:@"put_file"])
+        _app.uploading--;
+    if ([_action isEqualToString:@"get_file"])
+        _app.downloading++;
 }
 
 @end
