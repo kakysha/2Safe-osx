@@ -24,6 +24,7 @@
     NSMutableArray *_serverDeletionsQueue;
     NSMutableArray *_clientInsertionsQueue;
     NSMutableArray *_clientDeletionsQueue;
+    NSMutableArray *_dbDeletionsIds;
     NSMutableDictionary *_timeStamps;
     NSString *_folder;
     AppDelegate *_app;
@@ -41,6 +42,7 @@
         _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
         _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+        _dbDeletionsIds = [NSMutableArray arrayWithCapacity:50];
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
         _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
         _folder = _app.rootFolderPath;
@@ -298,12 +300,17 @@
         }
     }
     
-    [nonDeletableIds removeAllObjects];
+    //download unconflicted files
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
+    [self performServerInsertionQueue];
+    
+    //ServerDelitions VS ClientInsertions
     NSMutableArray *nonDeletableObjects = [[NSMutableArray alloc] initWithCapacity:50];
     for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+        if (clientInsertionElement.id) //modified file
+            [nonDeletableObjects addObject:clientInsertionElement];
         FSElement *p = clientInsertionElement;
-        //[nonDeletableObjects addObject:p];
-        while([p.id isNotEqualTo:@"<null>"]){
+        while([p.pid isNotEqualTo:@"<null>"]){
             NSUInteger foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:p.pid]){*stop = YES;return YES;} return NO;}];
             if(foundIndex == NSNotFound){
                 [nonDeletableObjects addObject:p];
@@ -311,23 +318,31 @@
             p = [_db getElementById:p.pid];
         }
     }
+    
     if ([nonDeletableObjects count] != 0){
         for (FSElement *serverDeletionElement in _serverDeletionsQueue){
             NSUInteger foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj pid] isEqualToString:serverDeletionElement.pid] && [[obj name] isEqualToString:serverDeletionElement.name]){*stop = YES;return YES;} return NO;}];
             if (foundIndex != NSNotFound && [serverDeletionElement.hash isEqualToString:@"NULL"]){
                 [_serverDeletionsQueue removeObject:serverDeletionElement];
+                //add this folder to insertions and remove all of its children from there, as after the completion of ServerDeletion there will be only new files
+                FSElement *insertionElement = [_db getElementById:serverDeletionElement.id withFullFilePath:YES];
+                insertionElement.filePath = [_folder stringByAppendingPathComponent:insertionElement.filePath];
+                [self removeChildrenFromClientInsertionsForElement:insertionElement];
+                [_clientInsertionsQueue addObject:insertionElement];
+                
                 [_folderStack removeAllObjects];
-                [_folderStack push: serverDeletionElement];
+                [_folderStack push:serverDeletionElement];
                 while([_folderStack count] != 0){
                     FSElement *stackElem = [_folderStack pop];
+                    stackElem.filePath = [_folder stringByAppendingPathComponent:stackElem.filePath];
                     NSArray* files = [_fm contentsOfDirectoryAtPath:stackElem.filePath error:nil];
                     for(NSString *file in files) {
-                        //NSString *path = [stackElem.filePath stringByAppendingPathComponent:file];
                         FSElement *elementToAdd = [_db getElementByName:file withPID:stackElem.id withFullFilePath:YES];
                         BOOL isDir = NO;
-                        [_fm fileExistsAtPath:elementToAdd.filePath isDirectory:&isDir];
-                        NSUInteger nextFoundIndex = [nonDeletableIds indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([obj isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
-                        if (nextFoundIndex != NSNotFound) {
+                        [_fm fileExistsAtPath:[_folder stringByAppendingPathComponent:elementToAdd.filePath] isDirectory:&isDir];
+                        if ((!elementToAdd)||(isInvisible([_folder stringByAppendingPathComponent:elementToAdd.filePath], !isDir))) continue;
+                        foundIndex = [nonDeletableObjects indexOfObjectPassingTest:^(FSElement *obj, NSUInteger idx, BOOL *stop){if ([obj.id isEqualToString:elementToAdd.id]){*stop = YES;return YES;} return NO;}];
+                        if (foundIndex != NSNotFound) {
                             if(isDir){
                                 [_folderStack push:elementToAdd];
                             }
@@ -338,15 +353,15 @@
                     }
                     
                 }
+            } else {//TODO: handle files
             }
+            [_dbDeletionsIds addObject:serverDeletionElement.id];
         }
     }
     
-    [self performServerInsertionQueue];
+    //upload unconflicted files
     [self performServerDeletionQueue];
-    
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientInsertionQueue]; });
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{ [self performClientDeletionQueue]; });
 }
 
 - (void) resolveConflictForServerEl:(FSElement *)sEl andClientEl:(FSElement *)clEl {
@@ -373,6 +388,17 @@
                 _app.lastActionTimestamp = [NSString stringWithFormat:@"%@",[_timeStamps objectForKey:sEl.id]];
         } else NSLog(@"%ld: %@",[e code],[e localizedDescription]);
     }];
+}
+
+- (void) removeChildrenFromClientInsertionsForElement:(FSElement *)pEl {
+    for(FSElement *clientInsertionElement in _clientInsertionsQueue){
+        FSElement *p = clientInsertionElement;
+        while([p.pid isNotEqualTo:@"<null>"]){
+            if ([p.pid isEqualToString:pEl.id])
+                [_clientInsertionsQueue removeObject:clientInsertionElement];
+            p = [_db getElementById:p.pid];
+        }
+    }
 }
 
 - (void) downloadAllFiles {
@@ -443,11 +469,14 @@
                         NSArray* files = [_fm contentsOfDirectoryAtPath:curDirEl.filePath error:nil];
                         for(NSString *file in files) {
                             NSString *path = [curDirEl.filePath stringByAppendingPathComponent:file];
+
                             FSElement *childEl = [[FSElement alloc] initWithPath:path];
                             childEl.pid = curDirEl.id;
                             
                             BOOL isDir = NO;
                             [_fm fileExistsAtPath:childEl.filePath isDirectory:&isDir];
+                            
+                            if (isInvisible(childEl.filePath, !isDir)) continue;
                             
                             if (isDir) { //directory - just push it into stack for upload
                                 [_uploadFolderStack push:childEl];
@@ -548,6 +577,10 @@
         [_db deleteElementById:fse.id];
         if ([_timeStamps objectForKey:fse.id])
             _app.lastActionTimestamp = [_timeStamps objectForKey:fse.id];
+    }
+    for (NSString *did in _dbDeletionsIds) {
+        [_db deleteElementById:did];
+        [_dbDeletionsIds removeObject:did];
     }
 }
 
