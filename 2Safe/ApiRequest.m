@@ -301,7 +301,7 @@ NSString *_token;
     if ([_action isEqualToString:@"put_file"])
         _app.uploading--;
     if ([_action isEqualToString:@"get_file"])
-        _app.downloading++;
+        _app.downloading--;
 }
 
 @end
