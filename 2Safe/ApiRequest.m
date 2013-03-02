@@ -116,11 +116,11 @@ NSString *_token;
         if (!theConnection)
             self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
         else
-            NSLog(@"Start: %@", self.action);
+            [self _logRequestStart];
     } else {
         NSURLResponse *resp;
         NSError *er;
-        NSLog(@"Synchronous request \"%@\" started", self.action);
+        [self _logRequestStart];
         NSData *syncData = [NSURLConnection sendSynchronousRequest:theRequest returningResponse:&resp error:&er];
         [self connection:nil didReceiveResponse:(NSHTTPURLResponse *)resp];
         if (er) [self connection:nil didFailWithError:er];
@@ -286,7 +286,7 @@ NSString *_token;
         return;
     }
     //ok - return the result
-    NSLog(@"Finish: %@", self.action);
+    [self _logRequestEnd];
     switch (requestType) {
         case TextRequest: {
                 responseBlock([r valueForKey:@"response"], nil); // API always returns the response in "response" key
@@ -302,6 +302,25 @@ NSString *_token;
         _app.uploading--;
     if ([_action isEqualToString:@"get_file"])
         _app.downloading--;
+}
+
+- (void) _logRequestStart {
+    NSString *infoString;
+    if ([self.action isEqualToString:@"make_dir"])
+        infoString = [self.requestparams objectForKey:@"dir_name"];
+    if ([self.action isEqualToString:@"put_file"])
+        infoString = [[self.requestparams objectForKey:@"file"] name];
+    if (infoString) NSLog(@"-%@:%@ %@", self.action, infoString, sync ? @"(SYNCHRONOUS)" : @"");
+    else NSLog(@"-%@ %@", self.action, sync ? @"(SYNCHRONOUS)" : @"");
+}
+- (void) _logRequestEnd {
+    NSString *infoString;
+    if ([self.action isEqualToString:@"make_dir"])
+        infoString = [self.requestparams objectForKey:@"dir_name"];
+    if ([self.action isEqualToString:@"put_file"])
+        infoString = [[self.requestparams objectForKey:@"file"] name];
+    if (infoString) NSLog(@"+%@:%@ %@", self.action, infoString, sync ? @"(SYNCHRONOUS)" : @"");
+    else NSLog(@"+%@ %@", self.action, sync ? @"(SYNCHRONOUS)" : @"");
 }
 
 @end

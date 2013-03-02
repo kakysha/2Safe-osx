@@ -30,7 +30,7 @@
     AppDelegate *_app;
     NSNumber *_downloadingFiles;
     NSNumber *_uploadingFiles;
-    BOOL timered;
+    NSTimer *timer;
 }
 
 - (id) init {
@@ -49,20 +49,18 @@
         _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
         _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
         _folder = _app.rootFolderPath;
-        timered = NO;
         return self;
     }
     return nil;
 }
 
 -(void) startSynchronization {
-    if (!timered) {
-        [NSTimer scheduledTimerWithTimeInterval:30
+    if (!timer) {
+        timer = [NSTimer scheduledTimerWithTimeInterval:30
              target:self
            selector:@selector(startSynchronization)
            userInfo:nil
             repeats:YES];
-        timered = YES;
     }
     if ((_app.downloading == 0)&&(_app.uploading == 0)) {
         NSLog(@"Start syncronization\n");
