@@ -117,6 +117,7 @@
 }
 
 - (void) start {
+    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"account"];
     if (!self.account) self.account = [[NSUserDefaults standardUserDefaults] valueForKey:@"account"];
     if (!self.token) self.token = [[NSUserDefaults standardUserDefaults] valueForKey:@"token"];
     if (self.account && self.token) {
@@ -131,6 +132,10 @@
                 NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }
         } synchronous:YES];
+        /*if (!self.account) {
+            [LoginController setRestart:YES];
+            return;
+        }*/
         NSLog(@"Token: %@", self.token);
         
         //new user on this computer or some information is lost

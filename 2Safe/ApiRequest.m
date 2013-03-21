@@ -275,7 +275,9 @@ NSString *_token;
         if (([self.error code] == 1)|| //not authorized
             ([self.error code] == 15)) { //incorrect token
             NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
-            [LoginController auth];
+            dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+            [LoginController authWithSemaphore:sema];
+            dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
             _token = _app.token;
             if (responseBlock) [self performRequestWithBlock:responseBlock];
             else [self performDataRequestWithBlock:responseDataBlock];

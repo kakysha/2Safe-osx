@@ -10,14 +10,14 @@
 #import "ApiRequest.h"
 #import "AppDelegate.h"
 
-@implementation LoginController {
-}
+@implementation LoginController
 
 NSDictionary *credentials = nil;
 BOOL isCaptchaNeeded = NO;
 NSString *captchaId;
 NSError *_error;
-BOOL restart = NO;
+dispatch_semaphore_t sema;
+static BOOL restart = NO;
 @synthesize window;
 @synthesize captchaView;
 @synthesize login;
@@ -26,6 +26,8 @@ BOOL restart = NO;
 @synthesize captchaText;
 @synthesize errorMessage;
 @synthesize enterButton;
+
+
 
 - (IBAction)enter:(id)sender {
     credentials = [[NSDictionary alloc] initWithObjectsAndKeys:[login stringValue], @"login", [password stringValue], @"password", [captchaText stringValue], @"captcha", captchaId, @"captcha_id", nil];
@@ -65,6 +67,9 @@ BOOL restart = NO;
     restart = true;
     [LoginController auth];
 }
++ (void) authWithSemaphore:(dispatch_semaphore_t)semaphore{
+    sema = semaphore;
+}
 + (void) auth{
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
     ((AppDelegate *)[[NSApplication sharedApplication] delegate]).account = nil;
@@ -83,6 +88,7 @@ BOOL restart = NO;
             NSLog(@"New token obtained for %@: %@", [credentials valueForKey:@"login"],[response valueForKey:@"token"]);
             [SSKeychain setPassword:[credentials valueForKey:@"password"] forService:@"2safe" account:[credentials valueForKey:@"login"] error:&e];
             [[[NSApplication sharedApplication] windows][0] close]; // DIRTY SLUTTY CODE HERE, BEWARE!
+            if (sema) dispatch_semaphore_signal(sema);
             if (restart) {[((AppDelegate *)[[NSApplication sharedApplication] delegate]) start]; restart = false;}
         } else if ([e code] == 85){ //captcha requirement
             NSLog(@"Error: Captcha is required!\n[code:%ld description:%@]",[e code],[e localizedDescription]);
