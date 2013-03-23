@@ -101,7 +101,7 @@
                     NSString *oldId = [[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ? [dict objectForKey:@"old_id"] : [dict objectForKey:@"id"];
                     NSString *newId = [[dict objectForKey:@"event"] isEqualTo:@"file_moved"] ? [dict objectForKey:@"new_id"] : [dict objectForKey:@"id"];
                     FSElement *elementToDel = [_db getElementById:oldId withFullFilePath:YES];
-                    NSInteger ind;
+                    NSInteger ind = -1;
                     if (!elementToDel) {
                         ind = [_serverInsertionsQueue indexOfObjectPassingTest:^(id obj, NSUInteger idx, BOOL *stop){if ([[obj id] isEqualToString:oldId]){*stop = YES;return YES;} return NO;}];
                         if (ind == NSNotFound) continue; //nothing found, return

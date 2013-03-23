@@ -108,15 +108,17 @@ NSString *_token;
         [theRequest addValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [theRequest setHTTPBody:POSTBody];
     if (isMultipart) [theRequest setHTTPBodyStream:uploadFileStream];
-    NSURLConnection *theConnection;
+    NSURLConnection __block *theConnection;
     if (!sync) {
-        theConnection =[[NSURLConnection alloc] initWithRequest:theRequest delegate:self startImmediately:NO];
-        [theConnection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
-        [theConnection start];
-        if (!theConnection)
-            self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
-        else
-            [self _logRequestStart];
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            theConnection =[[NSURLConnection alloc] initWithRequest:theRequest delegate:self startImmediately:NO];
+            [theConnection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+            [theConnection start];
+            if (!theConnection)
+                self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+            else
+                [self _logRequestStart];
+        });
     } else {
         NSURLResponse *resp;
         NSError *er;

@@ -69,6 +69,7 @@ static BOOL restart = NO;
 }
 + (void) authWithSemaphore:(dispatch_semaphore_t)semaphore{
     sema = semaphore;
+    [LoginController auth];
 }
 + (void) auth{
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"token"]; //purge old token
