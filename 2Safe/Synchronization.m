@@ -35,23 +35,27 @@
 
 - (id) init {
     if (self = [super init]) {
-        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
-        _fm = [NSFileManager defaultManager];
-        _db = [Database databaseForAccount:_app.account];
-        _folderStack = [NSMutableArray arrayWithCapacity:100];
-        _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
-        _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
-        _serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
-        _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
-        _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
-        _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
-        _dbDeletionsIds = [NSMutableArray arrayWithCapacity:50];
-        _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
-        _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
-        _folder = _app.rootFolderPath;
+        [self resetValues];
         return self;
     }
     return nil;
+}
+
+- (void) resetValues{
+    _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
+    _fm = [NSFileManager defaultManager];
+    _db = [Database databaseForAccount:_app.account];
+    _folderStack = [NSMutableArray arrayWithCapacity:100];
+    _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
+    _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
+    _serverInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+    _serverDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+    _clientInsertionsQueue = [NSMutableArray arrayWithCapacity:50];
+    _clientDeletionsQueue = [NSMutableArray arrayWithCapacity:50];
+    _dbDeletionsIds = [NSMutableArray arrayWithCapacity:50];
+    _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
+    _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
+    _folder = _app.rootFolderPath;
 }
 
 -(void) startSynchronization {
@@ -63,7 +67,8 @@
             repeats:YES];
     }
     if ((_app.downloading == 0)&&(_app.uploading == 0)) {
-        NSLog(@"Start syncronization\n");
+        NSLog(@"Start synchronization\t[%@]",_app.lastActionTimestamp);
+        [self resetValues];
         [self getClientQueues];
     }
     //clientQueues will invoke obtaining serverQueues

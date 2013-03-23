@@ -110,15 +110,13 @@ NSString *_token;
     if (isMultipart) [theRequest setHTTPBodyStream:uploadFileStream];
     NSURLConnection __block *theConnection;
     if (!sync) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            theConnection =[[NSURLConnection alloc] initWithRequest:theRequest delegate:self startImmediately:NO];
-            [theConnection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
-            [theConnection start];
-            if (!theConnection)
-                self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
-            else
-                [self _logRequestStart];
-        });
+        theConnection =[[NSURLConnection alloc] initWithRequest:theRequest delegate:self startImmediately:NO];
+        [theConnection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+        [theConnection start];
+        if (!theConnection)
+            self.error = [NSError errorWithDomain:@"2safe" code:02 userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"Can't create connection to %@", url], NSLocalizedDescriptionKey, nil]];
+        else
+            [self _logRequestStart];
     } else {
         NSURLResponse *resp;
         NSError *er;
@@ -277,12 +275,9 @@ NSString *_token;
         if (([self.error code] == 1)|| //not authorized
             ([self.error code] == 15)) { //incorrect token
             NSLog(@"Incorrect token, reauth. (error: %li)", [self.error code]);
-            dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-            [LoginController authWithSemaphore:sema];
-            dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-            _token = _app.token;
-            if (responseBlock) [self performRequestWithBlock:responseBlock];
-            else [self performDataRequestWithBlock:responseDataBlock];
+            [LoginController authAndRestart];
+            if (responseBlock) responseBlock(nil, self.error);
+            else responseDataBlock(nil, nil, self.error);
         } else {
             if (requestType == TextRequest) responseBlock(nil, self.error);
             else responseDataBlock(nil, nil, self.error);

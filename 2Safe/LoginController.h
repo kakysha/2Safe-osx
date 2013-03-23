@@ -26,7 +26,6 @@
 
 + (NSError *)error;
 + (void) auth;
-+ (void) authWithSemaphore:(dispatch_semaphore_t)sema;
 + (void) authAndRestart;
 
 

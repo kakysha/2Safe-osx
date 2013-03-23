@@ -132,10 +132,10 @@
                 NSLog(@"Error code:%ld description:%@",[e code],[e localizedDescription]);
             }
         } synchronous:YES];
-        /*if (!self.account) {
-            [LoginController setRestart:YES];
-            return;
-        }*/
+        
+        //since we already began authorizing and restarting in ApiRequest - just return here.
+        if(!self.account) return;
+        
         NSLog(@"Token: %@", self.token);
         
         //new user on this computer or some information is lost
