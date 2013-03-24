@@ -35,6 +35,10 @@
 
 - (id) init {
     if (self = [super init]) {
+        _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
+        _fm = [NSFileManager defaultManager];
+        _db = [Database databaseForAccount:_app.account];
+        _folder = _app.rootFolderPath;
         [self resetValues];
         return self;
     }
@@ -42,9 +46,6 @@
 }
 
 - (void) resetValues{
-    _app = (AppDelegate *)[[NSApplication sharedApplication] delegate];
-    _fm = [NSFileManager defaultManager];
-    _db = [Database databaseForAccount:_app.account];
     _folderStack = [NSMutableArray arrayWithCapacity:100];
     _uploadFolderStack = [NSMutableArray arrayWithCapacity:50];
     _downloadFolderStack = [NSMutableArray arrayWithCapacity:50];
@@ -55,7 +56,6 @@
     _dbDeletionsIds = [NSMutableArray arrayWithCapacity:50];
     _serverMoves = [NSMutableDictionary dictionaryWithCapacity:50];
     _timeStamps = [NSMutableDictionary dictionaryWithCapacity:50];
-    _folder = _app.rootFolderPath;
 }
 
 -(void) startSynchronization {
